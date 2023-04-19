@@ -145,6 +145,25 @@ LOGGING = {
     },
 }
 
-COIN_MARKET_CAP_API_URL = 'https://pro-api.coinmarketcap.com/'
-COIN_MARKET_CAP_API_VERSION = 'v2/'
-COIN_MARKET_CAP_API_KEY = '<TAG>'
+DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.postgresql_psycopg2",
+        "NAME": "<TAG>",
+        "USER": "<TAG>",
+        "PASSWORD": "<TAG>",
+        "HOST": "<TAG>",
+        "PORT": "<TAG>",
+    }
+}
+
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "<TAG>",
+        "OPTIONS": {"CLIENT_CLASS": "django_redis.client.DefaultClient"},
+    }
+}
+
+COIN_MARKET_CAP_API_URL = "https://pro-api.coinmarketcap.com/"
+COIN_MARKET_CAP_API_VERSION = "v2/"
+COIN_MARKET_CAP_API_KEY = "<TAG>"

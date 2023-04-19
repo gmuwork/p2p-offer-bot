@@ -20,6 +20,14 @@ services:
       ports:
         - 54323:5432
 
+  cache-redis:
+      image: redis:7.2-rc1-alpine
+      volumes:
+        - redis_data:/var/lib/redis/data/
+      ports:
+        - 6380:6380
+
 
 volumes:
   postgres_data:
+  redis_data:
