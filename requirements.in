@@ -3,6 +3,7 @@ cachetools
 certifi
 charset-normalizer
 Django
+django-redis
 google-api-core
 google-api-python-client
 google-auth

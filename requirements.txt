@@ -8,6 +8,8 @@ asgiref==3.6.0
     # via
     #   -r requirements.in
     #   django
+async-timeout==4.0.2
+    # via redis
 cachetools==5.3.0
     # via
     #   -r requirements.in
@@ -21,6 +23,10 @@ charset-normalizer==3.1.0
     #   -r requirements.in
     #   requests
 django==4.2
+    # via
+    #   -r requirements.in
+    #   django-redis
+django-redis==5.2.0
     # via -r requirements.in
 google-api-core==2.11.0
     # via
@@ -91,6 +97,8 @@ pyparsing==3.0.9
     #   httplib2
 python-dotenv==1.0.0
     # via -r requirements.in
+redis==4.5.4
+    # via django-redis
 requests==2.28.2
     # via
     #   -r requirements.in
