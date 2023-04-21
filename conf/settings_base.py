@@ -167,3 +167,7 @@ CACHES = {
 COIN_MARKET_CAP_API_URL = "https://pro-api.coinmarketcap.com/"
 COIN_MARKET_CAP_API_VERSION = "v2/"
 COIN_MARKET_CAP_API_KEY = "<TAG>"
+
+NOONES_AUTH_API_URL = 'https://auth.noones.com'
+NOONES_AUTH_CLIENT_ID = '<TAG>'
+NOONES_AUTH_CLIENT_SECRET = '<TAG>'
