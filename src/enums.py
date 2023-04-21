@@ -9,3 +9,8 @@ class CryptoCurrency(enum.Enum):
 class FiatCurrency(enum.Enum):
     USD = "USD"
     ZAR = "ZAR"
+
+
+class AuthenticationTokenStatus(enum.Enum):
+    ACTIVE = 1
+    INACTIVE = 2
