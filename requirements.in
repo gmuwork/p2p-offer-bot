@@ -30,3 +30,5 @@ six
 sqlparse
 uritemplate
 urllib3
+black
+isort

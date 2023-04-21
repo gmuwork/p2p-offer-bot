@@ -1,11 +1,10 @@
 import decimal
-import typing
-
-import requests
 import logging
-import simplejson
+import typing
 from urllib import parse as url_parser
 
+import requests
+import simplejson
 from django.conf import settings
 
 from common import enums as common_enums
