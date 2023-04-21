@@ -22,7 +22,7 @@ def create_authentication_token() -> None:
         response = (
             noones_auth_client.NoonesAuthAPIClient().create_authentication_token()
         )
-    except noones_auth_client_exceptions.NoonesAuthException as e:
+    except noones_auth_client_exceptions.NoonesAuthAPIException as e:
         msg = "Unable to get authentication token from client. Error: {}".format(
             common_utils.get_exception_message(exception=e)
         )
