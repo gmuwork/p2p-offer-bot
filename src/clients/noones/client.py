@@ -6,10 +6,12 @@ import logging
 import simplejson
 from urllib import parse as url_parser
 
+from django.core.cache import cache
 from django.conf import settings
 
 from common import enums as common_enums
 from common import utils as common_utils
+from src import constants as source_constants
 from src import enums as source_enums
 from src.clients.noones import enums
 from src.clients.noones import exceptions
@@ -221,6 +223,6 @@ class NoonesApiClient(object):
         return {
             "Content-Type": "application/x-www-form-urlencoded",
             "Authorization": "Bearer {}".format(
-                authentication.get_authentication_token()
+                cache.get(key=source_constants.NOONES_AUTHENTICATION_TOKEN_CACHE_NAME)
             ),
         }
