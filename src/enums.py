@@ -27,3 +27,8 @@ class PaymentMethod(enum.Enum):
 
 class UserCountry(enum.Enum):
     ALL = "WORLDWIDE"
+
+
+class OfferOwnerType(enum.Enum):
+    INTERNAL = 1
+    COMPETITOR = 2
