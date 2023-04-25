@@ -110,15 +110,19 @@ class NoonesApiClient(object):
     def get_all_offers(
         self,
         offer_type: source_enums.OfferType,
-        fiat_currency: typing.Optional[source_enums.FiatCurrency] = None,
+        crypto_currency: source_enums.CryptoCurrency,
+        conversion_currency: source_enums.FiatCurrency = source_enums.FiatCurrency.USD,
+        user_country: source_enums.UserCountry = source_enums.UserCountry.ALL,
         payment_method: typing.Optional[source_enums.PaymentMethod] = None,
         fiat_fixed_price_min: typing.Optional[decimal.Decimal] = None,
         fiat_fixed_price_max: typing.Optional[decimal.Decimal] = None,
     ) -> typing.List[typing.Dict]:
-        payload = {"type": offer_type.value}
-
-        if fiat_currency:
-            payload["currency_code"] = fiat_currency.value
+        payload = {
+            "type": offer_type.value,
+            "currency_code": conversion_currency.value,
+            "crypto_currency_code": crypto_currency.value,
+            "user_country": user_country.value,
+        }
 
         if payment_method:
             payload["payment_method"] = payment_method.value
