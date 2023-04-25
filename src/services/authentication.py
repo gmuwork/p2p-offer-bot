@@ -56,27 +56,6 @@ def create_authentication_token() -> None:
     logger.info("{} Saved authentication token to cache.".format(_LOG_PREFIX))
 
 
-def get_authentication_token() -> str:
-    cached_token = cache.get(key=constants.NOONES_AUTHENTICATION_TOKEN_CACHE_NAME)
-    if cached_token:
-        return cached_token
-
-    db_token = (
-        models.AuthenticationToken.objects.filter(
-            status=enums.AuthenticationTokenStatus.ACTIVE.value,
-        )
-        .order_by("id")
-        .last()
-    )
-
-    if db_token:
-        return db_token.token
-
-    raise exceptions.NoonesNoActiveAuthenticationTokenError(
-        "Authentication token not found neither in cache nor in db"
-    )
-
-
 def deactivate_authentication_token(token_id: int) -> None:
     logger.info(
         "{} Deactivating authentication token (token_id={}).".format(
@@ -98,52 +77,32 @@ def deactivate_authentication_token(token_id: int) -> None:
 
 
 def maintain_active_authentication_token() -> None:
-    logger.info("{} Started activating authentication tokens.".format(_LOG_PREFIX))
-    try:
-        authentication_token = get_authentication_token()
-    except exceptions.NoonesNoActiveAuthenticationTokenError:
-        authentication_token = None
-
-    if authentication_token:
-        db_authentication_token = (
-            models.AuthenticationToken.objects.filter(token=authentication_token)
-            .order_by("id")
-            .last()
+    db_token = (
+        models.AuthenticationToken.objects.filter(
+            status=enums.AuthenticationTokenStatus.ACTIVE.value,
         )
+        .order_by("id")
+        .last()
+    )
 
-        if not db_authentication_token:
-            cache.delete(key=constants.NOONES_AUTHENTICATION_TOKEN_CACHE_NAME)
-            msg = "Token {} present in cache and not in the DB. Deleted from cache".format(
-                authentication_token
-            )
-            logger.error("{} {}.".format(_LOG_PREFIX, msg))
-            raise exceptions.NoonesNoActiveAuthenticationTokenError(msg)
+    if not db_token:
+        create_authentication_token()
+        return
 
-        if not (
-            datetime.datetime.now(datetime.timezone.utc)
-            > db_authentication_token.expire_at
-            - datetime.timedelta(
-                hours=constants.NOONES_AUTHENTICATION_TOKEN_VALIDITY_TIMEDELTA_HRS
-            )
-        ):
-            cache.set(
-                key=constants.NOONES_AUTHENTICATION_TOKEN_CACHE_NAME,
-                value=db_authentication_token.token,
-                timeout=constants.CACHE_MAX_TTL,
-            )
-            logger.info(
-                "{} Authentication token (token_id={}) is active. Updated cache.".format(
-                    _LOG_PREFIX, db_authentication_token.id
-                )
-            )
-            return
+    token_expiration_date = db_token.expire_at - datetime.timedelta(
+        hours=constants.NOONES_AUTHENTICATION_TOKEN_VALIDITY_TIMEDELTA_HRS
+    )
+    if datetime.datetime.now(datetime.timezone.utc) > token_expiration_date:
+        deactivate_authentication_token(token_id=db_token.id)
+        return
 
-        deactivate_authentication_token(token_id=db_authentication_token.id)
-        logger.info(
-            "{} Authentication token (token_id={}) is close to expire. Deactivated.".format(
-                _LOG_PREFIX, db_authentication_token.id
-            )
+    cache.set(
+        key=constants.NOONES_AUTHENTICATION_TOKEN_CACHE_NAME,
+        value=db_token.token,
+        timeout=constants.CACHE_MAX_TTL,
+    )
+    logger.info(
+        "{} Authentication token (token_id={}) is active. Updated cache.".format(
+            _LOG_PREFIX, db_token.id
         )
-
-    create_authentication_token()
-    logger.info("{} Finished activating authentication tokens.".format(_LOG_PREFIX))
+    )

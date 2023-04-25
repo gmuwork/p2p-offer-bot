@@ -23,3 +23,7 @@ class OfferType(enum.Enum):
 
 class PaymentMethod(enum.Enum):
     BANK_TRANSFER = "bank-transfer"
+
+
+class UserCountry(enum.Enum):
+    ALL = "WORLDWIDE"
