@@ -8,3 +8,19 @@ class NoonesAuthClientError(NoonesAuthenticationException):
 
 class NoonesNoActiveAuthenticationTokenError(NoonesAuthenticationException):
     pass
+
+
+class NoonesException(Exception):
+    pass
+
+
+class NoonesClientError(NoonesException):
+    pass
+
+
+class CMCException(Exception):
+    pass
+
+
+class CMCClientError(CMCException):
+    pass

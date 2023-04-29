@@ -15,7 +15,6 @@ from pathlib import Path
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.1/howto/deployment/checklist/
 
@@ -26,7 +25,6 @@ SECRET_KEY = "django-insecure-yn^dlc9j100z&q5x!sx5m4*9z6g-k*zcibu_p3#f(fv=b&yr^z
 DEBUG = True
 
 ALLOWED_HOSTS = []
-
 
 # Application definition
 
@@ -73,7 +71,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "wsgi.application"
 
-
 # Password validation
 # https://docs.djangoproject.com/en/4.1/ref/settings/#auth-password-validators
 
@@ -92,7 +89,6 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
 # Internationalization
 # https://docs.djangoproject.com/en/4.1/topics/i18n/
 
@@ -103,7 +99,6 @@ TIME_ZONE = "UTC"
 USE_I18N = True
 
 USE_TZ = True
-
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.1/howto/static-files/
@@ -173,3 +168,15 @@ NOONES_AUTH_CLIENT_ID = "<TAG>"
 NOONES_AUTH_CLIENT_SECRET = "<TAG>"
 
 NOONES_API_URL = "https://api.noones.com"
+
+CURRENCY_OFFER_CONFIG = {
+    "BTC": {
+        "amount_to_increase_offer": 18,  # in ZAR
+        "offer_search_price_upper_margin": 5,
+        "offer_search_price_lower_margin": 5,
+        "offer_owner_last_seen_max_time": 30,  # in minutes
+    },
+    "USD": {
+        "amount_to_increase_offer": 1.8,  # in ZAR
+    },
+}

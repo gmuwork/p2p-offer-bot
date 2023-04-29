@@ -38,7 +38,7 @@ def create_authentication_token() -> None:
     authentication_token = models.AuthenticationToken.objects.create(
         token=response["access_token"],
         expire_at=datetime.datetime.now()
-        + datetime.timedelta(seconds=response["expires_in"]),
+                  + datetime.timedelta(seconds=response["expires_in"]),
         status=enums.AuthenticationTokenStatus.ACTIVE.value,
         status_name=enums.AuthenticationTokenStatus.ACTIVE.name,
     )
@@ -49,7 +49,7 @@ def create_authentication_token() -> None:
     )
 
     cache.set(
-        key=constants.NOONES_AUTHENTICATION_TOKEN_CACHE_NAME,
+        key=constants.NOONES_AUTHENTICATION_TOKEN_CACHE_KEY,
         value=authentication_token.token,
         timeout=constants.CACHE_MAX_TTL,
     )
@@ -97,7 +97,7 @@ def maintain_active_authentication_token() -> None:
         return
 
     cache.set(
-        key=constants.NOONES_AUTHENTICATION_TOKEN_CACHE_NAME,
+        key=constants.NOONES_AUTHENTICATION_TOKEN_CACHE_KEY,
         value=db_token.token,
         timeout=constants.CACHE_MAX_TTL,
     )

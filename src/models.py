@@ -16,29 +16,41 @@ class AuthenticationToken(django_db_models.Model):
 
 
 class Offer(django_db_models.Model):
-    offer_id = django_db_models.CharField(max_length=255, null=False, unique=True)
+    offer_id = django_db_models.CharField(
+        max_length=255, null=False, unique=True
+    )
     owner_type = django_db_models.PositiveSmallIntegerField(null=False)
     owner_type_name = django_db_models.CharField(max_length=255, null=False)
     status = django_db_models.PositiveSmallIntegerField(null=False)
-
+    status_name = django_db_models.CharField(max_length=255, null=False)
+    offer_type = django_db_models.CharField(max_length=255, null=False)
+    offer_type_name = django_db_models.CharField(max_length=255, null=False)
+    currency = django_db_models.CharField(max_length=5, null=False)
+    conversion_currency = django_db_models.CharField(max_length=5, null=False)
+    payment_method = django_db_models.CharField(max_length=255, null=False)
     created_at = django_db_models.DateTimeField(auto_now_add=True)
     updated_at = django_db_models.DateTimeField(auto_now_add=True)
 
     class Meta:
         app_label = "src"
         db_table = "offerbot_offer"
+        # indexes = django_db_models.Index(fields=["offer_id", ])
 
 
 class OfferHistory(django_db_models.Model):
-    offer = django_db_models.OneToOneField(
-        Offer, on_delete=django_db_models.PROTECT, to_fields="owner_offer_id"
+    offer = django_db_models.ForeignKey(
+        Offer, on_delete=django_db_models.PROTECT, related_name="internal_offer"
     )
-    competitor_offer = django_db_models.OneToOneField(
-        Offer, on_delete=django_db_models.PROTECT, to_fields="competitor_offer_id"
+    competitor_offer = django_db_models.ForeignKey(
+        Offer, on_delete=django_db_models.PROTECT, related_name="competitor_offer"
     )
-    original_offer_price = django_db_models.DecimalField()
-    updated_offer_price = django_db_models.DecimalField()
-    competitor_offer_price = django_db_models.DecimalField()
+    original_offer_price = django_db_models.DecimalField(
+        max_digits=28, decimal_places=8
+    )
+    updated_offer_price = django_db_models.DecimalField(max_digits=28, decimal_places=8)
+    competitor_offer_price = django_db_models.DecimalField(
+        max_digits=28, decimal_places=8
+    )
 
     created_at = django_db_models.DateTimeField(auto_now_add=True)
     updated_at = django_db_models.DateTimeField(auto_now_add=True)
