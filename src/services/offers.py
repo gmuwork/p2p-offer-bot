@@ -4,6 +4,7 @@ import logging
 import typing
 
 from django.conf import settings
+from django.core import mail
 from django.core.cache import cache
 
 from common import utils as common_utils
@@ -58,8 +59,8 @@ def fetch_and_save_offer(offer_id: str, offer_owner_type: enums.OfferOwnerType) 
 
 
 def improve_offer(
-        offer_id: str,
-        competitive_offer_search_params: messages.OfferSearchParameters,
+    offer_id: str,
+    competitive_offer_search_params: messages.OfferSearchParameters,
 ):
     logger.info(
         "{} Started improving offer (offer_id={}, competitive_offer_search_terms={}).".format(
@@ -85,8 +86,8 @@ def improve_offer(
     )
 
     if (
-            decimal.Decimal(original_offer["fiat_price_per_crypto"])
-            == offer_price_to_update
+        decimal.Decimal(original_offer["fiat_price_per_crypto"])
+        == offer_price_to_update
     ):
         logger.info(
             "{} Offer (offer_id={}) price {} {} is the same as best competitor offer (offer_id={}). Exiting.".format(
@@ -163,7 +164,7 @@ def _fetch_offer_from_client(offer_id: str) -> typing.Dict:
 
 
 def _post_process_offer(
-        offer: typing.Dict, competitor_offer: typing.Dict, updated_price: decimal.Decimal
+    offer: typing.Dict, competitor_offer: typing.Dict, updated_price: decimal.Decimal
 ) -> None:
     logger.info(
         "{} Started post processing offer (offer_id={}).".format(
@@ -194,8 +195,8 @@ def _post_process_offer(
 
 
 def _get_best_competitor_offer(
-        internal_offer: typing.Dict,
-        competitive_offer_search_params: messages.OfferSearchParameters,
+    internal_offer: typing.Dict,
+    competitive_offer_search_params: messages.OfferSearchParameters,
 ) -> typing.Optional[typing.Dict]:
     crypto_currency = enums.CryptoCurrency(internal_offer["crypto_currency_code"])
     fiat_currency = enums.FiatCurrency(internal_offer["fiat_currency_code"])
@@ -210,25 +211,25 @@ def _get_best_competitor_offer(
         "conversion_currency": competitive_offer_search_params.conversion_currency,
         "payment_method": competitive_offer_search_params.payment_method,
         "fiat_fixed_price_max": currency_market_price
-                                + currency_market_price
-                                * (
-                                        decimal.Decimal(
-                                            settings.CURRENCY_OFFER_CONFIG[crypto_currency.name][
-                                                "offer_search_price_upper_margin"
-                                            ]
-                                        )
-                                        / decimal.Decimal("100")
-                                ),
+        + currency_market_price
+        * (
+            decimal.Decimal(
+                settings.CURRENCY_OFFER_CONFIG[crypto_currency.name][
+                    "offer_search_price_upper_margin"
+                ]
+            )
+            / decimal.Decimal("100")
+        ),
         "fiat_fixed_price_min": currency_market_price
-                                - currency_market_price
-                                * (
-                                        decimal.Decimal(
-                                            settings.CURRENCY_OFFER_CONFIG[crypto_currency.name][
-                                                "offer_search_price_lower_margin"
-                                            ]
-                                        )
-                                        / decimal.Decimal("100")
-                                ),
+        - currency_market_price
+        * (
+            decimal.Decimal(
+                settings.CURRENCY_OFFER_CONFIG[crypto_currency.name][
+                    "offer_search_price_lower_margin"
+                ]
+            )
+            / decimal.Decimal("100")
+        ),
     }
 
     try:
@@ -260,8 +261,8 @@ def _get_best_competitor_offer(
             continue
 
         if (
-                decimal.Decimal(datetime.datetime.now().timestamp())
-                - offer["last_seen_timestamp"]
+            decimal.Decimal(datetime.datetime.now().timestamp())
+            - offer["last_seen_timestamp"]
         ) / 60 > decimal.Decimal(
             settings.CURRENCY_OFFER_CONFIG[crypto_currency.name][
                 "offer_owner_last_seen_max_time"
@@ -275,7 +276,7 @@ def _get_best_competitor_offer(
 
 
 def _get_currency_market_price(
-        crypto_currency: enums.CryptoCurrency, convert_to_fiat_currency: enums.FiatCurrency
+    crypto_currency: enums.CryptoCurrency, convert_to_fiat_currency: enums.FiatCurrency
 ) -> decimal.Decimal:
     market_price = cache.get(
         key=constants.CMC_CURRENCY_MARKET_PRICE_CACHE_KEY.format(
@@ -314,3 +315,56 @@ def _get_currency_market_price(
         )
 
     return market_price
+
+
+def improve_internal_active_offers() -> None:
+    logger.info("{} Started improving internal active offers.".format(_LOG_PREFIX))
+    internal_active_offers = models.Offer.objects.filter(
+        owner_type=enums.OfferOwnerType.INTERNAL.value,
+        status=enums.OfferStatus.ACTIVE.value,
+    )
+
+    if not internal_active_offers:
+        logger.info(
+            "{} Not found active internal offers to improve. Exiting.".format(
+                _LOG_PREFIX
+            )
+        )
+        return
+
+    logger.info(
+        "{} Found {} active internal offers to improve.".format(
+            _LOG_PREFIX, internal_active_offers.count()
+        )
+    )
+    for internal_active_offer in internal_active_offers:
+        try:
+            improve_offer(
+                offer_id=internal_active_offer.offer_id,
+                competitive_offer_search_params=messages.OfferSearchParameters(
+                    offer_type=enums.OfferType(internal_active_offer.offer_type),
+                    currency=enums.CryptoCurrency(internal_active_offer.currency),
+                    conversion_currency=enums.FiatCurrency(
+                        internal_active_offer.conversion_currency
+                    ),
+                    payment_method=enums.PaymentMethod(
+                        internal_active_offer.payment_method
+                    ),
+                ),
+            )
+        except Exception as e:
+            msg = "Exception occurred while improving offer (offer_id={}). Error: {}".format(
+                internal_active_offer.offer_id,
+                common_utils.get_exception_message(exception=e),
+            )
+            logger.exception("{} {}.".format(_LOG_PREFIX, msg))
+            mail.send_mail(
+                from_email=settings.EMAIL_HOST_USER,
+                subject="ERROR",
+                message=msg,
+                recipient_list=settings.LOGGING_EMAIL_RECIPIENT_LIST,
+                fail_silently=False,
+            )
+            continue
+
+    logger.info("{} Finished improving internal active offers.".format(_LOG_PREFIX))

@@ -16,9 +16,7 @@ class AuthenticationToken(django_db_models.Model):
 
 
 class Offer(django_db_models.Model):
-    offer_id = django_db_models.CharField(
-        max_length=255, null=False, unique=True
-    )
+    offer_id = django_db_models.CharField(max_length=255, null=False, unique=True)
     owner_type = django_db_models.PositiveSmallIntegerField(null=False)
     owner_type_name = django_db_models.CharField(max_length=255, null=False)
     status = django_db_models.PositiveSmallIntegerField(null=False)
@@ -34,7 +32,9 @@ class Offer(django_db_models.Model):
     class Meta:
         app_label = "src"
         db_table = "offerbot_offer"
-        # indexes = django_db_models.Index(fields=["offer_id", ])
+        indexes = [
+            django_db_models.Index(fields=["status", "owner_type"]),
+        ]
 
 
 class OfferHistory(django_db_models.Model):
