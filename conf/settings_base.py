@@ -178,6 +178,9 @@ CURRENCY_OFFER_CONFIG = {
     },
     "USD": {
         "amount_to_increase_offer": 1.8,  # in ZAR
+        "offer_search_price_upper_margin": 5,
+        "offer_search_price_lower_margin": 5,
+        "offer_owner_last_seen_max_time": 30,  # in minutes
     },
 }
 
