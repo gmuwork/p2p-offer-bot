@@ -222,7 +222,7 @@ def _get_best_competitor_offer(
             decimal.Decimal(
                 config_services.get_currency_offer_config(
                     currency=crypto_currency,
-                    config_name="offer_search_price_upper_margin",
+                    config_name="search_price_upper_margin",
                 )
             )
             / decimal.Decimal("100")
@@ -233,7 +233,7 @@ def _get_best_competitor_offer(
             decimal.Decimal(
                 config_services.get_currency_offer_config(
                     currency=crypto_currency,
-                    config_name="offer_search_price_lower_margin",
+                    config_name="search_price_lower_margin",
                 )
             )
             / decimal.Decimal("100")
@@ -274,7 +274,7 @@ def _get_best_competitor_offer(
         ) / 60 > decimal.Decimal(
             config_services.get_currency_offer_config(
                 currency=crypto_currency,
-                config_name="offer_owner_last_seen_max_time",
+                config_name="owner_last_seen_max_time",
             )
         ):
             continue

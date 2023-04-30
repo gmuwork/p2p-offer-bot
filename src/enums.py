@@ -24,6 +24,7 @@ class OfferType(enum.Enum):
 class PaymentMethod(enum.Enum):
     BANK_TRANSFER = "bank-transfer"
     VISA_DEBIT_CREDIT_CARD = "visa-debitcredit-card"
+    OTHER_BANK_TRANSFER = 'other-bank-transfer'
 
 
 class UserCountry(enum.Enum):
