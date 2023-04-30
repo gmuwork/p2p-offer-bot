@@ -1,5 +1,6 @@
 import datetime
 import logging
+import typing
 
 from django.core.cache import cache
 
@@ -13,7 +14,7 @@ _LOG_PREFIX = "[CONFIG]"
 
 
 def set_currency_offer_config(
-        currency: enums.CryptoCurrency, config_name: str, config_value: str
+    currency: enums.CryptoCurrency, config_name: str, config_value: str
 ) -> models.CurrencyConfig:
     logger.info(
         "{} Setting currency offer config (currency={}, config_name={}, config_value={}).".format(
@@ -21,7 +22,7 @@ def set_currency_offer_config(
         )
     )
     if config_name not in constants.CURRENCY_CONFIGS:
-        msg = "Currency config name is not one of supported configs"
+        msg = "Currency config name is not one of supported config names"
         logger.error("{} {}.".format(_LOG_PREFIX, msg))
         raise exceptions.CurrencyConfigNotSupportedError(msg)
 
@@ -30,7 +31,7 @@ def set_currency_offer_config(
         currency=currency.value,
         defaults={
             "value": config_value,
-            'updated_at': datetime.datetime.now(),
+            "updated_at": datetime.datetime.now(),
         },
     )
     logger.info(
@@ -39,7 +40,9 @@ def set_currency_offer_config(
         )
     )
     cache.set(
-        key=constants.CURRENCY_CONFIG_CACHE_NAME.format(config_name=config_name, currency=currency.name),
+        key=constants.CURRENCY_CONFIG_CACHE_NAME.format(
+            config_name=config_name, currency=currency.name
+        ),
         value=config_value,
         timeout=constants.CACHE_MAX_TTL,
     )
@@ -58,7 +61,10 @@ def get_currency_offer_config(currency: enums.CryptoCurrency, config_name: str) 
         raise exceptions.CurrencyConfigNotSupportedError(msg)
 
     config_value = cache.get(
-        key=constants.CURRENCY_CONFIG_CACHE_NAME.format(config_name=config_name, currency=currency.name), default=None
+        key=constants.CURRENCY_CONFIG_CACHE_NAME.format(
+            config_name=config_name, currency=currency.name
+        ),
+        default=None,
     )
     if not config_value:
         config_value = models.CurrencyConfig.objects.get(
@@ -73,8 +79,14 @@ def get_currency_offer_config(currency: enums.CryptoCurrency, config_name: str) 
         )
 
     cache.set(
-        key=constants.CURRENCY_CONFIG_CACHE_NAME.format(config_name=config_name, currency=currency.name),
+        key=constants.CURRENCY_CONFIG_CACHE_NAME.format(
+            config_name=config_name, currency=currency.name
+        ),
         value=config_value,
         timeout=constants.CACHE_MAX_TTL,
     )
     return config_value
+
+
+def get_all_currency_configs() -> typing.List[models.CurrencyConfig]:
+    return models.CurrencyConfig.objects.all()
