@@ -13,6 +13,7 @@ from src import enums
 from src import exceptions
 from src import messages
 from src import models
+from src.services import config as config_services
 from src.clients.cmc import client as cmc_api_client
 from src.clients.cmc import exceptions as cmc_api_exceptions
 from src.clients.noones import client as noones_api_client
@@ -84,9 +85,10 @@ def improve_offer(
     offer_price_to_update = decimal.Decimal(
         competitor_offer["fiat_price_per_crypto"]
     ) + decimal.Decimal(
-        settings.CURRENCY_OFFER_CONFIG[competitor_offer["crypto_currency_code"]][
-            "amount_to_increase_offer"
-        ]
+        config_services.get_currency_offer_config(
+            currency=enums.CryptoCurrency(competitor_offer["crypto_currency_code"]),
+            config_name="amount_to_increase_offer",
+        )
     )
 
     if (
@@ -218,9 +220,10 @@ def _get_best_competitor_offer(
         + currency_market_price
         * (
             decimal.Decimal(
-                settings.CURRENCY_OFFER_CONFIG[crypto_currency.name][
-                    "offer_search_price_upper_margin"
-                ]
+                config_services.get_currency_offer_config(
+                    currency=crypto_currency,
+                    config_name="offer_search_price_upper_margin",
+                )
             )
             / decimal.Decimal("100")
         ),
@@ -228,9 +231,10 @@ def _get_best_competitor_offer(
         - currency_market_price
         * (
             decimal.Decimal(
-                settings.CURRENCY_OFFER_CONFIG[crypto_currency.name][
-                    "offer_search_price_lower_margin"
-                ]
+                config_services.get_currency_offer_config(
+                    currency=crypto_currency,
+                    config_name="offer_search_price_lower_margin",
+                )
             )
             / decimal.Decimal("100")
         ),
@@ -268,9 +272,10 @@ def _get_best_competitor_offer(
             decimal.Decimal(datetime.datetime.now().timestamp())
             - offer["last_seen_timestamp"]
         ) / 60 > decimal.Decimal(
-            settings.CURRENCY_OFFER_CONFIG[crypto_currency.name][
-                "offer_owner_last_seen_max_time"
-            ]
+            config_services.get_currency_offer_config(
+                currency=crypto_currency,
+                config_name="offer_owner_last_seen_max_time",
+            )
         ):
             continue
 
