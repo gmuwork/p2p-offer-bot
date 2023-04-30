@@ -13,6 +13,7 @@ from src import enums
 from src import exceptions
 from src import messages
 from src import models
+from src.services import config as config_services
 from src.clients.cmc import client as cmc_api_client
 from src.clients.cmc import exceptions as cmc_api_exceptions
 from src.clients.noones import client as noones_api_client
@@ -23,7 +24,9 @@ logger = logging.getLogger(__name__)
 _LOG_PREFIX = "[OFFERS]"
 
 
-def fetch_and_save_offer(offer_id: str, offer_owner_type: enums.OfferOwnerType) -> None:
+def fetch_and_save_offer(
+    offer_id: str, offer_owner_type: enums.OfferOwnerType
+) -> typing.Optional[models.Offer]:
     logger.info(
         "{} Fetching offer (id={}) from provider.".format(_LOG_PREFIX, offer_id)
     )
@@ -57,6 +60,8 @@ def fetch_and_save_offer(offer_id: str, offer_owner_type: enums.OfferOwnerType) 
 
     logger.info("{} Saved offer (id={}).".format(_LOG_PREFIX, saved_offer.id))
 
+    return saved_offer
+
 
 def improve_offer(
     offer_id: str,
@@ -80,9 +85,10 @@ def improve_offer(
     offer_price_to_update = decimal.Decimal(
         competitor_offer["fiat_price_per_crypto"]
     ) + decimal.Decimal(
-        settings.CURRENCY_OFFER_CONFIG[competitor_offer["crypto_currency_code"]][
-            "amount_to_increase_offer"
-        ]
+        config_services.get_currency_offer_config(
+            currency=enums.CryptoCurrency(competitor_offer["crypto_currency_code"]),
+            config_name="amount_to_increase_offer",
+        )
     )
 
     if (
@@ -214,9 +220,10 @@ def _get_best_competitor_offer(
         + currency_market_price
         * (
             decimal.Decimal(
-                settings.CURRENCY_OFFER_CONFIG[crypto_currency.name][
-                    "offer_search_price_upper_margin"
-                ]
+                config_services.get_currency_offer_config(
+                    currency=crypto_currency,
+                    config_name="search_price_upper_margin",
+                )
             )
             / decimal.Decimal("100")
         ),
@@ -224,9 +231,10 @@ def _get_best_competitor_offer(
         - currency_market_price
         * (
             decimal.Decimal(
-                settings.CURRENCY_OFFER_CONFIG[crypto_currency.name][
-                    "offer_search_price_lower_margin"
-                ]
+                config_services.get_currency_offer_config(
+                    currency=crypto_currency,
+                    config_name="search_price_lower_margin",
+                )
             )
             / decimal.Decimal("100")
         ),
@@ -264,9 +272,10 @@ def _get_best_competitor_offer(
             decimal.Decimal(datetime.datetime.now().timestamp())
             - offer["last_seen_timestamp"]
         ) / 60 > decimal.Decimal(
-            settings.CURRENCY_OFFER_CONFIG[crypto_currency.name][
-                "offer_owner_last_seen_max_time"
-            ]
+            config_services.get_currency_offer_config(
+                currency=crypto_currency,
+                config_name="owner_last_seen_max_time",
+            )
         ):
             continue
 
@@ -368,3 +377,28 @@ def improve_internal_active_offers() -> None:
             continue
 
     logger.info("{} Finished improving internal active offers.".format(_LOG_PREFIX))
+
+
+def get_all_offers(offer_owner_type: enums.OfferOwnerType) -> typing.List[models.Offer]:
+    return models.Offer.objects.filter(owner_type=offer_owner_type.value)
+
+
+def change_offer_status(offer_id: str, offer_status: str) -> models.Offer:
+    logger.info(
+        "{} Changing offer status (offer_id={}, offer_status={}).".format(
+            _LOG_PREFIX, offer_id, offer_status
+        )
+    )
+    offer_status = enums.OfferStatus.convert_from_status(status=offer_status)
+
+    offer = models.Offer.objects.get(offer_id=offer_id)
+    offer.status = offer_status.value
+    offer.status_name = offer_status.name
+    offer.save(update_fields=["status", "updated_at"])
+
+    logger.info(
+        "{} Changed offer status (offer_id={}, offer_status={}).".format(
+            _LOG_PREFIX, offer_id, offer_status
+        )
+    )
+    return offer

@@ -45,7 +45,7 @@ MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
-    "django.middleware.csrf.CsrfViewMiddleware",
+    # "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
@@ -169,18 +169,6 @@ NOONES_AUTH_CLIENT_SECRET = "<TAG>"
 
 NOONES_API_URL = "https://api.noones.com"
 
-CURRENCY_OFFER_CONFIG = {
-    "BTC": {
-        "amount_to_increase_offer": 18,  # in ZAR
-        "offer_search_price_upper_margin": 5,
-        "offer_search_price_lower_margin": 5,
-        "offer_owner_last_seen_max_time": 30,  # in minutes
-    },
-    "USD": {
-        "amount_to_increase_offer": 1.8,  # in ZAR
-    },
-}
-
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = "smtp.gmail.com"
 EMAIL_HOST_USER = "<TAG>"
@@ -188,4 +176,4 @@ EMAIL_HOST_PASSWORD = "<TAG>"
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 
-LOGGING_EMAIL_RECIPIENT_LIST = ['hajdukbet@gmail.com']
+LOGGING_EMAIL_RECIPIENT_LIST = ["hajdukbet@gmail.com"]

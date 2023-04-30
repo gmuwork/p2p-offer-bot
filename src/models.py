@@ -58,3 +58,17 @@ class OfferHistory(django_db_models.Model):
     class Meta:
         app_label = "src"
         db_table = "offerbot_offer_history"
+
+
+class CurrencyConfig(django_db_models.Model):
+    currency = django_db_models.CharField(max_length=255, null=False)
+    name = django_db_models.CharField(max_length=255, null=False)
+    value = django_db_models.CharField(max_length=255, null=False)
+
+    created_at = django_db_models.DateTimeField(auto_now_add=True)
+    updated_at = django_db_models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        app_label = "src"
+        db_table = "offerbot_currency_config"
+        unique_together = ["currency", "name"]

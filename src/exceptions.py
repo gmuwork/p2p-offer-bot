@@ -24,3 +24,11 @@ class CMCException(Exception):
 
 class CMCClientError(CMCException):
     pass
+
+
+class CurrencyConfigNotSupportedError(Exception):
+    pass
+
+
+class CurrencyOfferConfigNotFoundError(Exception):
+    pass
