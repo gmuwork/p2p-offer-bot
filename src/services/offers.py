@@ -23,7 +23,9 @@ logger = logging.getLogger(__name__)
 _LOG_PREFIX = "[OFFERS]"
 
 
-def fetch_and_save_offer(offer_id: str, offer_owner_type: enums.OfferOwnerType) -> None:
+def fetch_and_save_offer(
+    offer_id: str, offer_owner_type: enums.OfferOwnerType
+) -> typing.Optional[models.Offer]:
     logger.info(
         "{} Fetching offer (id={}) from provider.".format(_LOG_PREFIX, offer_id)
     )
@@ -56,6 +58,8 @@ def fetch_and_save_offer(offer_id: str, offer_owner_type: enums.OfferOwnerType) 
     )
 
     logger.info("{} Saved offer (id={}).".format(_LOG_PREFIX, saved_offer.id))
+
+    return saved_offer
 
 
 def improve_offer(
@@ -368,3 +372,28 @@ def improve_internal_active_offers() -> None:
             continue
 
     logger.info("{} Finished improving internal active offers.".format(_LOG_PREFIX))
+
+
+def get_all_offers(offer_owner_type: enums.OfferOwnerType) -> typing.List[models.Offer]:
+    return models.Offer.objects.filter(owner_type=offer_owner_type.value)
+
+
+def change_offer_status(offer_id: str, offer_status: str) -> models.Offer:
+    logger.info(
+        "{} Changing offer status (offer_id={}, offer_status={}).".format(
+            _LOG_PREFIX, offer_id, offer_status
+        )
+    )
+    offer_status = enums.OfferStatus.convert_from_status(status=offer_status)
+
+    offer = models.Offer.objects.get(offer_id=offer_id)
+    offer.status = offer_status.value
+    offer.status_name = offer_status.name
+    offer.save(update_fields=["status", "updated_at"])
+
+    logger.info(
+        "{} Changed offer status (offer_id={}, offer_status={}).".format(
+            _LOG_PREFIX, offer_id, offer_status
+        )
+    )
+    return offer
