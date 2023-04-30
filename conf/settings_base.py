@@ -169,6 +169,8 @@ NOONES_AUTH_CLIENT_SECRET = "<TAG>"
 
 NOONES_API_URL = "https://api.noones.com"
 
+OFFER_SEARCH_ALL_BANK_PAYMENT_METHODS = True
+
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = "smtp.gmail.com"
 EMAIL_HOST_USER = "<TAG>"
