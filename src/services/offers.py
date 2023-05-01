@@ -25,7 +25,7 @@ _LOG_PREFIX = "[OFFERS]"
 
 
 def fetch_and_save_offer(
-    offer_id: str, offer_owner_type: enums.OfferOwnerType
+        offer_id: str, offer_owner_type: enums.OfferOwnerType
 ) -> typing.Optional[models.Offer]:
     logger.info(
         "{} Fetching offer (id={}) from provider.".format(_LOG_PREFIX, offer_id)
@@ -64,8 +64,8 @@ def fetch_and_save_offer(
 
 
 def improve_offer(
-    offer_id: str,
-    competitive_offer_search_params: messages.OfferSearchParameters,
+        offer_id: str,
+        competitive_offer_search_params: messages.OfferSearchParameters,
 ):
     logger.info(
         "{} Started improving offer (offer_id={}, competitive_offer_search_terms={}).".format(
@@ -92,8 +92,8 @@ def improve_offer(
     )
 
     if (
-        decimal.Decimal(original_offer["fiat_price_per_crypto"])
-        == offer_price_to_update
+            decimal.Decimal(original_offer["fiat_price_per_crypto"])
+            == offer_price_to_update
     ):
         logger.info(
             "{} Offer (offer_id={}) price {} {} is the same as best competitor offer (offer_id={}). Exiting.".format(
@@ -170,7 +170,7 @@ def _fetch_offer_from_client(offer_id: str) -> typing.Dict:
 
 
 def _post_process_offer(
-    offer: typing.Dict, competitor_offer: typing.Dict, updated_price: decimal.Decimal
+        offer: typing.Dict, competitor_offer: typing.Dict, updated_price: decimal.Decimal
 ) -> None:
     logger.info(
         "{} Started post processing offer (offer_id={}).".format(
@@ -201,8 +201,8 @@ def _post_process_offer(
 
 
 def _get_best_competitor_offer(
-    internal_offer: typing.Dict,
-    competitive_offer_search_params: messages.OfferSearchParameters,
+        internal_offer: typing.Dict,
+        competitive_offer_search_params: messages.OfferSearchParameters,
 ) -> typing.Optional[typing.Dict]:
     crypto_currency = enums.CryptoCurrency(internal_offer["crypto_currency_code"])
     fiat_currency = enums.FiatCurrency(internal_offer["fiat_currency_code"])
@@ -215,30 +215,32 @@ def _get_best_competitor_offer(
         "offer_type": competitive_offer_search_params.offer_type,
         "crypto_currency": competitive_offer_search_params.currency,
         "conversion_currency": competitive_offer_search_params.conversion_currency,
-        "payment_method": competitive_offer_search_params.payment_method,
         "fiat_fixed_price_max": currency_market_price
-        + currency_market_price
-        * (
-            decimal.Decimal(
-                config_services.get_currency_offer_config(
-                    currency=crypto_currency,
-                    config_name="search_price_upper_margin",
-                )
-            )
-            / decimal.Decimal("100")
-        ),
+                                + currency_market_price
+                                * (
+                                        decimal.Decimal(
+                                            config_services.get_currency_offer_config(
+                                                currency=crypto_currency,
+                                                config_name="search_price_upper_margin",
+                                            )
+                                        )
+                                        / decimal.Decimal("100")
+                                ),
         "fiat_fixed_price_min": currency_market_price
-        - currency_market_price
-        * (
-            decimal.Decimal(
-                config_services.get_currency_offer_config(
-                    currency=crypto_currency,
-                    config_name="search_price_lower_margin",
-                )
-            )
-            / decimal.Decimal("100")
-        ),
+                                - currency_market_price
+                                * (
+                                        decimal.Decimal(
+                                            config_services.get_currency_offer_config(
+                                                currency=crypto_currency,
+                                                config_name="search_price_lower_margin",
+                                            )
+                                        )
+                                        / decimal.Decimal("100")
+                                ),
     }
+
+    if not settings.OFFER_SEARCH_ALL_BANK_PAYMENT_METHODS:
+        search_terms["payment_method"] = competitive_offer_search_params.payment_method
 
     try:
         offers = noones_api_client.NoonesApiClient().get_all_offers(**search_terms)
@@ -263,14 +265,15 @@ def _get_best_competitor_offer(
         )
         return
 
-    relevant_offers = []
+    relevant_offers_above_market_price = []
+    relevant_offers_below_market_price = []
     for offer in offers:
         if offer["offer_id"] == internal_offer["offer_id"]:
             continue
 
         if (
-            decimal.Decimal(datetime.datetime.now().timestamp())
-            - offer["last_seen_timestamp"]
+                decimal.Decimal(datetime.datetime.now().timestamp())
+                - offer["last_seen_timestamp"]
         ) / 60 > decimal.Decimal(
             config_services.get_currency_offer_config(
                 currency=crypto_currency,
@@ -279,13 +282,36 @@ def _get_best_competitor_offer(
         ):
             continue
 
-        relevant_offers.append(offer)
+        # TEMPORARY UNTIL CONFIRMED WITH CLIENT
+        if settings.OFFER_SEARCH_ALL_BANK_PAYMENT_METHODS and offer[
+            "payment_method_slug"
+        ] not in [
+            enums.PaymentMethod.BANK_TRANSFER.value,
+            enums.PaymentMethod.OTHER_BANK_TRANSFER.value,
+            enums.PaymentMethod.DOMESTIC_WIRE_TRANSFER,
+        ]:
+            continue
 
-    return max(relevant_offers, key=lambda offer: offer["fiat_price_per_crypto"])
+        offer_price = decimal.Decimal(offer["fiat_price_per_crypto"])
+        if offer_price > currency_market_price:
+            relevant_offers_above_market_price.append(offer)
+        else:
+            relevant_offers_below_market_price.append(offer)
+
+    if relevant_offers_below_market_price:
+        return max(
+            relevant_offers_below_market_price,
+            key=lambda offer: decimal.Decimal(offer["fiat_price_per_crypto"]),
+        )
+
+    return min(
+        relevant_offers_above_market_price,
+        key=lambda offer: decimal.Decimal(offer["fiat_price_per_crypto"]),
+    )
 
 
 def _get_currency_market_price(
-    crypto_currency: enums.CryptoCurrency, convert_to_fiat_currency: enums.FiatCurrency
+        crypto_currency: enums.CryptoCurrency, convert_to_fiat_currency: enums.FiatCurrency
 ) -> decimal.Decimal:
     market_price = cache.get(
         key=constants.CMC_CURRENCY_MARKET_PRICE_CACHE_KEY.format(
