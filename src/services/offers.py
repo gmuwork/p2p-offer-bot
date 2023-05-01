@@ -265,7 +265,8 @@ def _get_best_competitor_offer(
         )
         return
 
-    relevant_offers = []
+    relevant_offers_above_market_price = []
+    relevant_offers_below_market_price = []
     for offer in offers:
         if offer["offer_id"] == internal_offer["offer_id"]:
             continue
@@ -291,9 +292,22 @@ def _get_best_competitor_offer(
         ]:
             continue
 
-        relevant_offers.append(offer)
+        offer_price = decimal.Decimal(offer["fiat_price_per_crypto"])
+        if offer_price > currency_market_price:
+            relevant_offers_above_market_price.append(offer)
+        else:
+            relevant_offers_below_market_price.append(offer)
 
-    return max(relevant_offers, key=lambda offer: offer["fiat_price_per_crypto"])
+    if relevant_offers_below_market_price:
+        return max(
+            relevant_offers_below_market_price,
+            key=lambda offer: decimal.Decimal(offer["fiat_price_per_crypto"]),
+        )
+
+    return min(
+        relevant_offers_above_market_price,
+        key=lambda offer: decimal.Decimal(offer["fiat_price_per_crypto"]),
+    )
 
 
 def _get_currency_market_price(
