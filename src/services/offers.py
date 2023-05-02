@@ -288,7 +288,7 @@ def _get_best_competitor_offer(
         ] not in [
             enums.PaymentMethod.BANK_TRANSFER.value,
             enums.PaymentMethod.OTHER_BANK_TRANSFER.value,
-            enums.PaymentMethod.DOMESTIC_WIRE_TRANSFER,
+            enums.PaymentMethod.DOMESTIC_WIRE_TRANSFER.value,
         ]:
             continue
 
