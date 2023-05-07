@@ -76,6 +76,7 @@ class Offer(views.View):
             offer = offer_services.fetch_and_save_offer(
                 offer_id=validated_data["offer_id"],
                 offer_owner_type=enums.OfferOwnerType.INTERNAL,
+                override_existing_offer_type=True,
             )
         except Exception as e:
             logger.exception(

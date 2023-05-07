@@ -25,7 +25,9 @@ _LOG_PREFIX = "[OFFERS]"
 
 
 def fetch_and_save_offer(
-        offer_id: str, offer_owner_type: enums.OfferOwnerType
+    offer_id: str,
+    offer_owner_type: enums.OfferOwnerType,
+    override_existing_offer_type: bool = False,
 ) -> typing.Optional[models.Offer]:
     logger.info(
         "{} Fetching offer (id={}) from provider.".format(_LOG_PREFIX, offer_id)
@@ -36,12 +38,24 @@ def fetch_and_save_offer(
             _LOG_PREFIX, offer_id
         )
     )
-    if models.Offer.objects.filter(offer_id=offer["offer_id"]).exists():
+    offer_db = (
+        models.Offer.objects.filter(offer_id=offer["offer_id"]).order_by("id").last()
+    )
+    if offer_db:
         logger.info(
-            "{} Offer (id={}) is already present in db. Exiting.".format(
-                _LOG_PREFIX, offer_id
-            )
+            "{} Offer (id={}) is already present in db.".format(_LOG_PREFIX, offer_id)
         )
+
+        if override_existing_offer_type:
+            logger.info(
+                "{} Changing offer (id={}) owner type to (offer_owner_type={}).".format(
+                    _LOG_PREFIX, offer["offer_id"], offer_owner_type.name
+                )
+            )
+            offer_db.owner_type = offer_owner_type.value
+            offer_db.owner_type_name = offer_owner_type.name
+            offer_db.save(update_fields=["owner_type", "owner_type_name", "updated_at"])
+
         return
 
     offer_type = enums.OfferType(offer["offer_type"])
@@ -64,8 +78,8 @@ def fetch_and_save_offer(
 
 
 def improve_offer(
-        offer_id: str,
-        competitive_offer_search_params: messages.OfferSearchParameters,
+    offer_id: str,
+    competitive_offer_search_params: messages.OfferSearchParameters,
 ):
     logger.info(
         "{} Started improving offer (offer_id={}, competitive_offer_search_terms={}).".format(
@@ -92,8 +106,8 @@ def improve_offer(
     )
 
     if (
-            decimal.Decimal(original_offer["fiat_price_per_crypto"])
-            == offer_price_to_update
+        decimal.Decimal(original_offer["fiat_price_per_crypto"])
+        == offer_price_to_update
     ):
         logger.info(
             "{} Offer (offer_id={}) price {} {} is the same as best competitor offer (offer_id={}). Exiting.".format(
@@ -170,7 +184,7 @@ def _fetch_offer_from_client(offer_id: str) -> typing.Dict:
 
 
 def _post_process_offer(
-        offer: typing.Dict, competitor_offer: typing.Dict, updated_price: decimal.Decimal
+    offer: typing.Dict, competitor_offer: typing.Dict, updated_price: decimal.Decimal
 ) -> None:
     logger.info(
         "{} Started post processing offer (offer_id={}).".format(
@@ -201,8 +215,8 @@ def _post_process_offer(
 
 
 def _get_best_competitor_offer(
-        internal_offer: typing.Dict,
-        competitive_offer_search_params: messages.OfferSearchParameters,
+    internal_offer: typing.Dict,
+    competitive_offer_search_params: messages.OfferSearchParameters,
 ) -> typing.Optional[typing.Dict]:
     crypto_currency = enums.CryptoCurrency(internal_offer["crypto_currency_code"])
     fiat_currency = enums.FiatCurrency(internal_offer["fiat_currency_code"])
@@ -216,27 +230,27 @@ def _get_best_competitor_offer(
         "crypto_currency": competitive_offer_search_params.currency,
         "conversion_currency": competitive_offer_search_params.conversion_currency,
         "fiat_fixed_price_max": currency_market_price
-                                + currency_market_price
-                                * (
-                                        decimal.Decimal(
-                                            config_services.get_currency_offer_config(
-                                                currency=crypto_currency,
-                                                config_name="search_price_upper_margin",
-                                            )
-                                        )
-                                        / decimal.Decimal("100")
-                                ),
+        + currency_market_price
+        * (
+            decimal.Decimal(
+                config_services.get_currency_offer_config(
+                    currency=crypto_currency,
+                    config_name="search_price_upper_margin",
+                )
+            )
+            / decimal.Decimal("100")
+        ),
         "fiat_fixed_price_min": currency_market_price
-                                - currency_market_price
-                                * (
-                                        decimal.Decimal(
-                                            config_services.get_currency_offer_config(
-                                                currency=crypto_currency,
-                                                config_name="search_price_lower_margin",
-                                            )
-                                        )
-                                        / decimal.Decimal("100")
-                                ),
+        - currency_market_price
+        * (
+            decimal.Decimal(
+                config_services.get_currency_offer_config(
+                    currency=crypto_currency,
+                    config_name="search_price_lower_margin",
+                )
+            )
+            / decimal.Decimal("100")
+        ),
     }
 
     if not settings.OFFER_SEARCH_ALL_BANK_PAYMENT_METHODS:
@@ -272,8 +286,8 @@ def _get_best_competitor_offer(
             continue
 
         if (
-                decimal.Decimal(datetime.datetime.now().timestamp())
-                - offer["last_seen_timestamp"]
+            decimal.Decimal(datetime.datetime.now().timestamp())
+            - offer["last_seen_timestamp"]
         ) / 60 > decimal.Decimal(
             config_services.get_currency_offer_config(
                 currency=crypto_currency,
@@ -311,7 +325,7 @@ def _get_best_competitor_offer(
 
 
 def _get_currency_market_price(
-        crypto_currency: enums.CryptoCurrency, convert_to_fiat_currency: enums.FiatCurrency
+    crypto_currency: enums.CryptoCurrency, convert_to_fiat_currency: enums.FiatCurrency
 ) -> decimal.Decimal:
     market_price = cache.get(
         key=constants.CMC_CURRENCY_MARKET_PRICE_CACHE_KEY.format(

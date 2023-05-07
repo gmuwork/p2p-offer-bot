@@ -22,5 +22,12 @@
       <jdbc-url>jdbc:postgresql://128.140.60.79:54323/p2p_offer_bot_dev</jdbc-url>
       <working-dir>$ProjectFileDir$</working-dir>
     </data-source>
+    <data-source source="LOCAL" name="p2p_offer_bot_dev@productionjacky" uuid="5f886f0c-1fdc-4821-854c-c15689607296">
+      <driver-ref>postgresql</driver-ref>
+      <synchronize>true</synchronize>
+      <jdbc-driver>org.postgresql.Driver</jdbc-driver>
+      <jdbc-url>jdbc:postgresql://181.215.68.227:54323/p2p_offer_bot_dev</jdbc-url>
+      <working-dir>$ProjectFileDir$</working-dir>
+    </data-source>
   </component>
 </project>
