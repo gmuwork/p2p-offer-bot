@@ -8,8 +8,8 @@ from src import constants
 from src import enums
 from src import exceptions
 from src import models
-from src.clients.noones import client as noones_auth_client
-from src.clients.noones import exceptions as noones_auth_client_exceptions
+from src.integrations.gateways.noones import client as noones_auth_client
+from src.integrations.gateways.noones import exceptions as noones_auth_client_exceptions
 
 logger = logging.getLogger(__name__)
 _LOG_PREFIX = "[NOONES-AUTHENTICATION]"

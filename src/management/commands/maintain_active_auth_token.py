@@ -2,8 +2,10 @@ import logging
 import typing
 
 from django.core.management.base import BaseCommand
+from django.core.management.base import CommandParser
 
 from common import utils as common_utils
+from src import enums
 from src.services import authentication as authentication_services
 
 logger = logging.getLogger(__name__)
@@ -12,10 +14,19 @@ logger = logging.getLogger(__name__)
 class Command(BaseCommand):
     help = """
             Maintains active authentication pool.
-            ex. python manage.py maintain_active_auth_token 
+            ex. python manage.py maintain_active_auth_token  --provider=NOONES
             """
 
     log_prefix = "[MAINTAIN-ACTIVE-AUTH-TOKEN]"
+
+    def add_arguments(self, parser: CommandParser) -> None:
+        parser.add_argument(
+            "--provider",
+            required=True,
+            type=str,
+            choices=[offer_provider.name for offer_provider in enums.OfferProvider],
+            help="One of offer providers specified in OfferProvider.",
+        )
 
     def handle(self, *args: typing.Any, **kwargs: typing.Any) -> None:
         logger.info(

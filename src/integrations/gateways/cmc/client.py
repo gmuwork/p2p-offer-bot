@@ -11,7 +11,7 @@ from django.conf import settings
 from common import enums as common_enums
 from common import utils as common_utils
 from src import enums as source_enums
-from src.clients.cmc import exceptions
+from src.integrations.gateways.cmc import exceptions
 
 logger = logging.getLogger(__name__)
 
@@ -25,9 +25,9 @@ class CoinMarketCapClient(object):
     LOG_PREFIX = "[COIN-MARKET-CAP-CLIENT]"
 
     def get_market_price(
-        self,
-        currency: source_enums.CryptoCurrency,
-        convert_to: typing.Optional[source_enums.FiatCurrency] = None,
+            self,
+            currency: source_enums.CryptoCurrency,
+            convert_to: typing.Optional[source_enums.FiatCurrency] = None,
     ) -> typing.Dict:
         params = {"symbol": currency.value}
 
@@ -47,11 +47,11 @@ class CoinMarketCapClient(object):
         return simplejson.loads(response.content, parse_float=decimal.Decimal)["data"]
 
     def _request(
-        self,
-        endpoint: str,
-        method: common_enums.HttpMethod,
-        params: typing.Optional[dict] = None,
-        payload: typing.Optional[dict] = None,
+            self,
+            endpoint: str,
+            method: common_enums.HttpMethod,
+            params: typing.Optional[dict] = None,
+            payload: typing.Optional[dict] = None,
     ) -> requests.Response:
         url = url_parser.urljoin(
             base=self.API_BASE_URL, url=self.API_VERSION + endpoint

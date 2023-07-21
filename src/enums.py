@@ -47,3 +47,8 @@ class OfferStatus(enum.Enum):
             "ACTIVE": OfferStatus.ACTIVE,
             "INACTIVE": OfferStatus.INACTIVE,
         }[status]
+
+
+class OfferProvider(enum.Enum):
+    NOONES = 1
+    PAXFUL = 2

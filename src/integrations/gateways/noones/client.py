@@ -13,9 +13,8 @@ from common import enums as common_enums
 from common import utils as common_utils
 from src import constants as source_constants
 from src import enums as source_enums
-from src.clients.noones import enums
-from src.clients.noones import exceptions
-from src.services import authentication
+from src.integrations.gateways.noones import enums
+from src.integrations.gateways.noones import exceptions
 
 logger = logging.getLogger(__name__)
 
@@ -43,11 +42,11 @@ class NoonesAuthAPIClient(object):
         )
 
     def _request(
-        self,
-        endpoint: str,
-        method: common_enums.HttpMethod,
-        params: typing.Optional[dict] = None,
-        payload: typing.Optional[dict] = None,
+            self,
+            endpoint: str,
+            method: common_enums.HttpMethod,
+            params: typing.Optional[dict] = None,
+            payload: typing.Optional[dict] = None,
     ) -> requests.Response:
         url = url_parser.urljoin(base=self.API_BASE_URL, url=endpoint)
         try:
@@ -119,14 +118,14 @@ class NoonesApiClient(object):
         )
 
     def get_all_offers(
-        self,
-        offer_type: source_enums.OfferType,
-        crypto_currency: source_enums.CryptoCurrency,
-        conversion_currency: source_enums.FiatCurrency = source_enums.FiatCurrency.USD,
-        user_country: source_enums.UserCountry = source_enums.UserCountry.ALL,
-        payment_method: typing.Optional[source_enums.PaymentMethod] = None,
-        fiat_fixed_price_min: typing.Optional[decimal.Decimal] = None,
-        fiat_fixed_price_max: typing.Optional[decimal.Decimal] = None,
+            self,
+            offer_type: source_enums.OfferType,
+            crypto_currency: source_enums.CryptoCurrency,
+            conversion_currency: source_enums.FiatCurrency = source_enums.FiatCurrency.USD,
+            user_country: source_enums.UserCountry = source_enums.UserCountry.ALL,
+            payment_method: typing.Optional[source_enums.PaymentMethod] = None,
+            fiat_fixed_price_min: typing.Optional[decimal.Decimal] = None,
+            fiat_fixed_price_max: typing.Optional[decimal.Decimal] = None,
     ) -> typing.List[typing.Dict]:
         payload = {
             "type": offer_type.value,
@@ -152,7 +151,7 @@ class NoonesApiClient(object):
         )
 
     def update_offer_price(
-        self, offer_id: str, price_to_update: decimal.Decimal
+            self, offer_id: str, price_to_update: decimal.Decimal
     ) -> typing.Dict:
         return self._get_response_content(
             response=self._request(
@@ -163,11 +162,11 @@ class NoonesApiClient(object):
         )
 
     def _request(
-        self,
-        endpoint: str,
-        method: common_enums.HttpMethod,
-        params: typing.Optional[dict] = None,
-        payload: typing.Optional[dict] = None,
+            self,
+            endpoint: str,
+            method: common_enums.HttpMethod,
+            params: typing.Optional[dict] = None,
+            payload: typing.Optional[dict] = None,
     ) -> requests.Response:
         url = url_parser.urljoin(base=self.API_BASE_URL, url=endpoint)
         try:
@@ -223,12 +222,12 @@ class NoonesApiClient(object):
         )["data"]
 
     def _get_paginated_response(
-        self,
-        endpoint: str,
-        method: common_enums.HttpMethod,
-        payload: typing.Dict,
-        data_field: str,
-        limit: int = 300,
+            self,
+            endpoint: str,
+            method: common_enums.HttpMethod,
+            payload: typing.Dict,
+            data_field: str,
+            limit: int = 300,
     ) -> typing.List:
         payload.update({"limit": limit, "offset": 0})
         offers = []
