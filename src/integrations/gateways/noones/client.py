@@ -273,6 +273,7 @@ class NoonesApiClient(object):
         return {
             "Content-Type": "application/x-www-form-urlencoded",
             "Authorization": "Bearer {}".format(
-                cache.get(key=source_constants.NOONES_AUTHENTICATION_TOKEN_CACHE_KEY)
+                cache.get(key=source_constants.AUTHENTICATION_TOKEN_CACHE_KEY.format(
+                    provider=source_enums.OfferProvider.NOONES.name))
             ),
         }
