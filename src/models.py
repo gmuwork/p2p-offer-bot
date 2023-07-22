@@ -6,6 +6,8 @@ class AuthenticationToken(django_db_models.Model):
     expire_at = django_db_models.DateTimeField(null=False)
     status = django_db_models.SmallIntegerField(null=False)
     status_name = django_db_models.CharField(max_length=255, null=False)
+    provider = django_db_models.SmallIntegerField(null=True)
+    provider_name = django_db_models.CharField(max_length=255, null=True)
 
     created_at = django_db_models.DateTimeField(auto_now_add=True)
     updated_at = django_db_models.DateTimeField(auto_now_add=True)
