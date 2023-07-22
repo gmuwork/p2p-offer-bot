@@ -17,11 +17,28 @@ class AuthenticationProviderFactory(object):
     }
 
     def create(
-        self, provider: enums.OfferProvider
+            self, provider: enums.OfferProvider
     ) -> typing.Union[noones_client.NoonesAuthenticationProvider]:
         if provider not in self._PROVIDER_IMPLEMENTATION_MAP:
             msg = "Authentication provider {} is not supported".format(provider.name)
             logger.error("{} {}.".format(self._LOG_PREFIX, msg))
             raise provider_exceptions.AuthenticationProviderNotSupportedError(msg)
+
+        return self._PROVIDER_IMPLEMENTATION_MAP[provider]()
+
+
+class ProviderFactory(object):
+    _LOG_PREFIX = "[PROVIDER-FACTORY]"
+    _PROVIDER_IMPLEMENTATION_MAP = {
+        enums.OfferProvider.NOONES: noones_client.NoonesProvider,
+    }
+
+    def create(
+            self, provider: enums.OfferProvider
+    ) -> typing.Union[noones_client.NoonesProvider]:
+        if provider not in self._PROVIDER_IMPLEMENTATION_MAP:
+            msg = "Provider {} is not supported".format(provider.name)
+            logger.error("{} {}.".format(self._LOG_PREFIX, msg))
+            raise provider_exceptions.ProviderNotSupportedError(msg)
 
         return self._PROVIDER_IMPLEMENTATION_MAP[provider]()

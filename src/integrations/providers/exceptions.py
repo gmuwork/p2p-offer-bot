@@ -12,3 +12,19 @@ class AuthenticationProviderDataValidationError(AuthenticationProviderError):
 
 class AuthenticationProviderNotSupportedError(AuthenticationProviderError):
     pass
+
+
+class ProviderError(Exception):
+    pass
+
+
+class ProviderClientError(ProviderError):
+    pass
+
+
+class ProviderDataValidationError(ProviderError):
+    pass
+
+
+class ProviderNotSupportedError(ProviderError):
+    pass
