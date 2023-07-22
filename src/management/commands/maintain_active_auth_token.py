@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 class Command(BaseCommand):
     help = """
-            Maintains active authentication pool.
+            Maintains active authentication token pool.
             ex. python manage.py maintain_active_auth_token  --provider=NOONES
             """
 
@@ -25,14 +25,16 @@ class Command(BaseCommand):
             required=True,
             type=str,
             choices=[offer_provider.name for offer_provider in enums.OfferProvider],
-            help="One of offer providers specified in OfferProvider.",
+            help="One of offer providers specified in OfferProvider enum.",
         )
 
     def handle(self, *args: typing.Any, **kwargs: typing.Any) -> None:
+        offer_provider = enums.OfferProvider[kwargs["provider"]]
         logger.info(
-            "{} Started command '{}'.".format(
+            "{} Started command '{}' (provider={}).".format(
                 self.log_prefix,
                 __name__.split(".")[-1],
+                offer_provider.name,
             )
         )
 
@@ -40,15 +42,17 @@ class Command(BaseCommand):
             authentication_services.maintain_active_authentication_token()
         except Exception as e:
             logger.exception(
-                "{} Unexpected exception occurred while maintaining active authentication token. Error: {}.".format(
+                "{} Unexpected exception occurred while maintaining active authentication token (provider={}). Error: {}.".format(
                     self.log_prefix,
+                    offer_provider.name,
                     common_utils.get_exception_message(exception=e),
                 )
             )
 
         logger.info(
-            "{} Finished command '{}'.".format(
+            "{} Finished command '{}' (provider={}).".format(
                 self.log_prefix,
                 __name__.split(".")[-1],
+                offer_provider.name,
             )
         )
