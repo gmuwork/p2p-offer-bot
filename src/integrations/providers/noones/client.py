@@ -50,7 +50,7 @@ class NoonesAuthenticationProvider(base_provider.BaseAuthenticationProvider):
         return provider_mesages.AuthenticationToken(
             token=validated_data["access_token"],
             expires_at=datetime.datetime.now()
-                       + datetime.timedelta(seconds=validated_data["expires_in"]),
+            + datetime.timedelta(seconds=validated_data["expires_in"]),
         )
 
 
@@ -91,18 +91,62 @@ class NoonesProvider(base_provider.BaseProvider):
         return self._construct_offer_data(data=validated_offer)
 
     def get_all_offers(
-            self,
-            offer_type: enums.OfferType,
-            currency: enums.CryptoCurrency,
-            conversion_currency: enums.FiatCurrency,
-            payment_method: enums.PaymentMethod,
-            min_price: decimal.Decimal,
-            max_price: decimal.Decimal,
+        self,
+        offer_type: enums.OfferType,
+        currency: enums.CryptoCurrency,
+        conversion_currency: enums.FiatCurrency,
+        min_price: decimal.Decimal,
+        max_price: decimal.Decimal,
+        payment_method: typing.Optional[enums.PaymentMethod] = None,
     ) -> typing.List[messages.Offer]:
-        pass
+        try:
+            response = self.get_rest_api_client().get_all_offers(
+                offer_type=offer_type,
+                crypto_currency=currency,
+                conversion_currency=conversion_currency,
+                payment_method=payment_method,
+                fiat_fixed_price_min=min_price,
+                fiat_fixed_price_max=max_price,
+            )
+        except noones_client_exceptions.NoonesAPIException as e:
+            msg = "Exception occurred while getting all offers (offer_type={}, currency={}, conversion_currency={}, payment_method={}, min_price={}, max_price={}). Error: {}".format(
+                offer_type.name,
+                currency.name,
+                conversion_currency.name,
+                payment_method.name if payment_method else None,
+                min_price,
+                max_price,
+                common_utils.get_exception_message(exception=e),
+            )
+            logger.exception("{} {}.".format(self._LOG_PREFIX, msg))
+            raise provider_exceptions.ProviderClientError(msg)
+
+        validated_offers = common_utils.validate_data_schema(
+            data={"offers": response}, schema=schemas.Offers()
+        )
+        if not validated_offers:
+            msg = "Offers data is not valid"
+            logger.error("{} {}.".format(self._LOG_PREFIX, msg))
+            raise provider_exceptions.ProviderDataValidationError(msg)
+
+        return [
+            self._construct_offer_data(data=offer_data)
+            for offer_data in validated_offers["offers"]
+        ]
 
     def update_offer_price(self, offer_id: str, price: decimal.Decimal) -> bool:
-        pass
+        try:
+            response = self.get_rest_api_client().update_offer_price(
+                offer_id=offer_id, price_to_update=price
+            )
+        except noones_client_exceptions.NoonesAPIException as e:
+            msg = "Unable to update offer (offer_id={}, price={})".format(
+                offer_id, price
+            )
+            logger.exception("{} {}.".format(self._LOG_PREFIX, msg))
+            raise provider_exceptions.ProviderClientError(msg)
+
+        return response.get("success", False)
 
     @staticmethod
     def _construct_offer_data(data: typing.Dict) -> messages.Offer:
@@ -112,6 +156,8 @@ class NoonesProvider(base_provider.BaseProvider):
             currency=enums.CryptoCurrency(data["crypto_currency_code"]),
             conversion_currency=enums.FiatCurrency(data["fiat_currency_code"]),
             price=data["fiat_price_per_crypto"],
-            payment_method=enums.PaymentMethod(data["payment_method_slug"]),
+            payment_method=enums.PaymentMethod.convert_from_payment_slug(
+                slug=data["payment_method_slug"]
+            ),
             owner_last_seen_timestamp=data["last_seen_timestamp"],
         )

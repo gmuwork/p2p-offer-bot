@@ -1,4 +1,5 @@
 import enum
+import typing
 
 
 class CryptoCurrency(enum.Enum):
@@ -26,6 +27,15 @@ class PaymentMethod(enum.Enum):
     VISA_DEBIT_CREDIT_CARD = "visa-debitcredit-card"
     OTHER_BANK_TRANSFER = "other-bank-transfer"
     DOMESTIC_WIRE_TRANSFER = "domestic-wire-transfer"
+
+    @staticmethod
+    def convert_from_payment_slug(slug: str) -> typing.Optional["PaymentMethod"]:
+        try:
+            payment_method = PaymentMethod[slug]
+        except KeyError:
+            return None
+
+        return payment_method
 
 
 class UserCountry(enum.Enum):

@@ -19,5 +19,5 @@ class Offer:
     conversion_currency: enums.FiatCurrency
     price: decimal.Decimal
     type: enums.OfferType
-    payment_method: enums.PaymentMethod
+    payment_method: typing.Optional[enums.PaymentMethod]
     owner_last_seen_timestamp: typing.Optional[decimal.Decimal]
