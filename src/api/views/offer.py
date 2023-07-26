@@ -18,7 +18,7 @@ _LOG_PREFIX = "[OFFER-VIEW]"
 
 class Offer(views.View):
     def get(
-            self, request: http.HttpRequest, *args: typing.Any, **kwargs: typing.Any
+        self, request: http.HttpRequest, *args: typing.Any, **kwargs: typing.Any
     ) -> http.HttpResponse:
         logger.info("{} Fetching all internal offers.".format(_LOG_PREFIX))
         try:
@@ -37,17 +37,20 @@ class Offer(views.View):
                 status=500,
             )
         logger.info("{} Fetched all internal offers.".format(_LOG_PREFIX))
-        json_response = [
-            self._format_offer_response(offer=offer) for offer in all_offers
-        ]
         return http.HttpResponse(
             headers={"Content-Type": "application/json"},
-            content=simplejson.dumps({"data": json_response}),
+            content=simplejson.dumps(
+                {
+                    "data": [
+                        self._format_offer_response(offer=offer) for offer in all_offers
+                    ]
+                }
+            ),
             status=200,
         )
 
     def post(
-            self, request: http.HttpRequest, *args: typing.Any, **kwargs: typing.Any
+        self, request: http.HttpRequest, *args: typing.Any, **kwargs: typing.Any
     ) -> http.HttpResponse:
         try:
             payload = simplejson.loads(request.body.decode("utf-8"))
@@ -75,7 +78,7 @@ class Offer(views.View):
         try:
             offer = offer_services.fetch_and_save_offer(
                 offer_id=validated_data["offer_id"],
-                offer_provider=enums.OfferProvider[validated_data['provider']],
+                offer_provider=enums.OfferProvider[validated_data["provider"]],
                 offer_owner_type=enums.OfferOwnerType.INTERNAL,
                 override_existing_offer_type=True,
             )
@@ -110,7 +113,7 @@ class Offer(views.View):
         )
 
     def patch(
-            self, request: http.HttpRequest, *args: typing.Any, **kwargs: typing.Any
+        self, request: http.HttpRequest, *args: typing.Any, **kwargs: typing.Any
     ) -> http.HttpResponse:
 
         offer_id = kwargs.get("offer_id")
@@ -186,7 +189,7 @@ class Offer(views.View):
             "id": offer.id,
             "attributes": {
                 "offer_id": offer.offer_id,
-                'provider': offer.provider_name,
+                "provider": offer.provider_name,
                 "status": offer.status_name,
                 "type": offer.offer_type_name,
                 "currency": offer.currency,

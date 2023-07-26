@@ -19,7 +19,7 @@ _LOG_PREFIX = "[CONFIG-VIEW]"
 
 class Config(views.View):
     def get(
-            self, request: http.HttpRequest, *args: typing.Any, **kwargs: typing.Any
+        self, request: http.HttpRequest, *args: typing.Any, **kwargs: typing.Any
     ) -> http.HttpResponse:
         logger.info("{} Fetching all currency offer configs.".format(_LOG_PREFIX))
         try:
@@ -37,17 +37,21 @@ class Config(views.View):
             )
 
         logger.info("{} Fetched all currency configs.".format(_LOG_PREFIX))
-        json_response = [
-            self._format_config_response(config=config) for config in all_configs
-        ]
         return http.HttpResponse(
             headers={"Content-Type": "application/json"},
-            content=simplejson.dumps({"data": json_response}),
+            content=simplejson.dumps(
+                {
+                    "data": [
+                        self._format_config_response(config=config)
+                        for config in all_configs
+                    ]
+                }
+            ),
             status=200,
         )
 
     def post(
-            self, request: http.HttpRequest, *args: typing.Any, **kwargs: typing.Any
+        self, request: http.HttpRequest, *args: typing.Any, **kwargs: typing.Any
     ) -> http.HttpResponse:
         try:
             payload = simplejson.loads(request.body.decode("utf-8"))

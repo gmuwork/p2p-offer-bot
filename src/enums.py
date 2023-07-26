@@ -32,7 +32,7 @@ class PaymentMethod(enum.Enum):
     def convert_from_payment_slug(slug: str) -> typing.Optional["PaymentMethod"]:
         try:
             payment_method = PaymentMethod(slug)
-        except KeyError:
+        except Exception:
             return None
 
         return payment_method
