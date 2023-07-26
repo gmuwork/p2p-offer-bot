@@ -31,6 +31,7 @@ class ProviderFactory(object):
     _LOG_PREFIX = "[PROVIDER-FACTORY]"
     _PROVIDER_IMPLEMENTATION_MAP = {
         enums.OfferProvider.NOONES: noones_client.NoonesProvider,
+        enums.OfferProvider.PAXFUL: paxful_client.PaxfulProvider,
     }
 
     def create(

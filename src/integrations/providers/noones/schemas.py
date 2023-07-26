@@ -1,6 +1,5 @@
 from marshmallow import fields
 from marshmallow import schema
-from marshmallow import pre_load
 from marshmallow import EXCLUDE
 
 

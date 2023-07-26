@@ -76,8 +76,8 @@ class OfferImproverService(object):
         )
 
     def improve_offer(
-        self,
-        offer_id: str,
+            self,
+            offer_id: str,
     ):
         logger.info(
             "{} Started improving offer (offer_id={}).".format(
@@ -157,8 +157,8 @@ class OfferImproverService(object):
         )
 
     def _get_best_competitor_offer(
-        self,
-        internal_offer: provider_messages.Offer,
+            self,
+            internal_offer: provider_messages.Offer,
     ) -> typing.Optional[provider_messages.Offer]:
         currency_market_price = self._get_currency_market_price(
             crypto_currency=internal_offer.currency,
@@ -166,26 +166,26 @@ class OfferImproverService(object):
         )
 
         competitor_offer_max_price = currency_market_price + currency_market_price * (
-            decimal.Decimal(
-                config_services.get_currency_offer_config(
-                    # TODO: This has to be extended to be per provider
-                    currency=internal_offer.currency,
-                    config_name="search_price_upper_margin",
-                    offer_provider=self._provider_client.provider,
+                decimal.Decimal(
+                    config_services.get_currency_offer_config(
+                        # TODO: This has to be extended to be per provider
+                        currency=internal_offer.currency,
+                        config_name="search_price_upper_margin",
+                        offer_provider=self._provider_client.provider,
+                    )
                 )
-            )
-            / decimal.Decimal("100")
+                / decimal.Decimal("100")
         )
 
         competitor_offer_min_price = currency_market_price - currency_market_price * (
-            decimal.Decimal(
-                config_services.get_currency_offer_config(
-                    currency=internal_offer.currency,
-                    config_name="search_price_lower_margin",
-                    offer_provider=self._provider_client.provider,
+                decimal.Decimal(
+                    config_services.get_currency_offer_config(
+                        currency=internal_offer.currency,
+                        config_name="search_price_lower_margin",
+                        offer_provider=self._provider_client.provider,
+                    )
                 )
-            )
-            / decimal.Decimal("100")
+                / decimal.Decimal("100")
         )
         competitor_offers = self._provider_client.get_all_offers(
             offer_type=internal_offer.type,
@@ -217,8 +217,8 @@ class OfferImproverService(object):
                 continue
 
             if (
-                decimal.Decimal(datetime.datetime.now().timestamp())
-                - offer.owner_last_seen_timestamp
+                    decimal.Decimal(datetime.datetime.now().timestamp())
+                    - offer.owner_last_seen_timestamp
             ) / 60 > decimal.Decimal(
                 config_services.get_currency_offer_config(
                     currency=internal_offer.currency,
@@ -230,13 +230,13 @@ class OfferImproverService(object):
 
             # TEMPORARY UNTIL CONFIRMED WITH CLIENT
             if (
-                settings.OFFER_SEARCH_ALL_BANK_PAYMENT_METHODS
-                and offer.payment_method
-                not in [
-                    enums.PaymentMethod.BANK_TRANSFER,
-                    enums.PaymentMethod.OTHER_BANK_TRANSFER,
-                    enums.PaymentMethod.DOMESTIC_WIRE_TRANSFER,
-                ]
+                    settings.OFFER_SEARCH_ALL_BANK_PAYMENT_METHODS
+                    and offer.payment_method
+                    not in [
+                enums.PaymentMethod.BANK_TRANSFER,
+                enums.PaymentMethod.OTHER_BANK_TRANSFER,
+                enums.PaymentMethod.DOMESTIC_WIRE_TRANSFER,
+            ]
             ):
                 continue
 
@@ -253,9 +253,9 @@ class OfferImproverService(object):
         return min(relevant_offers_above_market_price, key=lambda offer: offer.price)
 
     def _get_currency_market_price(
-        self,
-        crypto_currency: enums.CryptoCurrency,
-        convert_to_fiat_currency: enums.FiatCurrency,
+            self,
+            crypto_currency: enums.CryptoCurrency,
+            convert_to_fiat_currency: enums.FiatCurrency,
     ) -> decimal.Decimal:
         market_price = cache.get(
             key=constants.CMC_CURRENCY_MARKET_PRICE_CACHE_KEY.format(
@@ -296,10 +296,10 @@ class OfferImproverService(object):
         return market_price
 
     def _post_process_offer(
-        self,
-        internal_offer: provider_messages.Offer,
-        competitor_offer: provider_messages.Offer,
-        updated_price: decimal.Decimal,
+            self,
+            internal_offer: provider_messages.Offer,
+            competitor_offer: provider_messages.Offer,
+            updated_price: decimal.Decimal,
     ) -> None:
         logger.info(
             "{} Started post processing internal offer (offer_id={}).".format(
@@ -308,8 +308,8 @@ class OfferImproverService(object):
         )
 
         if not models.Offer.objects.filter(
-            offer_id=competitor_offer.offer_id,
-            provider=self._provider_client.provider.value,
+                offer_id=competitor_offer.offer_id,
+                provider=self._provider_client.provider.value,
         ).exists():
             competitor_offer_db = models.Offer.objects.create(
                 offer_id=competitor_offer.offer_id,
@@ -322,6 +322,8 @@ class OfferImproverService(object):
                 currency=competitor_offer.currency.name,
                 conversion_currency=competitor_offer.conversion_currency.name,
                 payment_method=competitor_offer.payment_method.value,
+                provider=self._provider_client.provider.value,
+                provider_name=self._provider_client.provider.name,
             )
             logger.info(
                 "{} Created competitor offer (id={}).".format(
@@ -338,6 +340,8 @@ class OfferImproverService(object):
             original_offer_price=internal_offer.price,
             updated_offer_price=updated_price,
             competitor_offer_price=competitor_offer.price,
+            provider=self._provider_client.provider.value,
+            provider_name=self._provider_client.provider.name,
         )
         logger.info(
             "{} Created offer history (offer_id={}, offer_history_id={}).".format(
