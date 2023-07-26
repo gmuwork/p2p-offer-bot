@@ -14,11 +14,14 @@ _LOG_PREFIX = "[CONFIG]"
 
 
 def set_currency_offer_config(
-    currency: enums.CryptoCurrency, config_name: str, config_value: str
+    currency: enums.CryptoCurrency,
+    offer_provider: enums.OfferProvider,
+    config_name: str,
+    config_value: str,
 ) -> models.CurrencyConfig:
     logger.info(
-        "{} Setting currency offer config (currency={}, config_name={}, config_value={}).".format(
-            _LOG_PREFIX, currency.name, config_name, config_value
+        "{} Setting currency offer config (currency={}, prover_name={}, config_name={}, config_value={}).".format(
+            _LOG_PREFIX, currency.name, offer_provider.name, config_name, config_value
         )
     )
     if config_name not in constants.CURRENCY_CONFIGS:
@@ -29,6 +32,8 @@ def set_currency_offer_config(
     currency_config, _ = models.CurrencyConfig.objects.update_or_create(
         name=config_name,
         currency=currency.value,
+        provider=offer_provider.value,
+        provider_name=offer_provider.name,
         defaults={
             "value": config_value,
             "updated_at": datetime.datetime.now(),
@@ -41,7 +46,9 @@ def set_currency_offer_config(
     )
     cache.set(
         key=constants.CURRENCY_CONFIG_CACHE_NAME.format(
-            config_name=config_name, currency=currency.name
+            config_name=config_name,
+            currency=currency.name,
+            provider=offer_provider.name,
         ),
         value=config_value,
         timeout=constants.CACHE_MAX_TTL,
@@ -54,7 +61,11 @@ def set_currency_offer_config(
     return currency_config
 
 
-def get_currency_offer_config(currency: enums.CryptoCurrency, config_name: str) -> str:
+def get_currency_offer_config(
+    currency: enums.CryptoCurrency,
+    offer_provider: enums.OfferProvider,
+    config_name: str,
+) -> str:
     if config_name not in constants.CURRENCY_CONFIGS:
         msg = "Currency config name is not one of supported configs"
         logger.error("{} {}.".format(_LOG_PREFIX, msg))
@@ -62,13 +73,15 @@ def get_currency_offer_config(currency: enums.CryptoCurrency, config_name: str) 
 
     config_value = cache.get(
         key=constants.CURRENCY_CONFIG_CACHE_NAME.format(
-            config_name=config_name, currency=currency.name
+            config_name=config_name,
+            currency=currency.name,
+            provider=offer_provider.name,
         ),
         default=None,
     )
     if not config_value:
         config_value = models.CurrencyConfig.objects.get(
-            currency=currency.value, name=config_name
+            currency=currency.value, name=config_name, provider=offer_provider.value
         ).value
 
     if not config_value:
@@ -80,7 +93,9 @@ def get_currency_offer_config(currency: enums.CryptoCurrency, config_name: str) 
 
     cache.set(
         key=constants.CURRENCY_CONFIG_CACHE_NAME.format(
-            config_name=config_name, currency=currency.name
+            config_name=config_name,
+            currency=currency.name,
+            provider=offer_provider.name,
         ),
         value=config_value,
         timeout=constants.CACHE_MAX_TTL,

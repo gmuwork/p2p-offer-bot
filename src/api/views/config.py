@@ -19,7 +19,7 @@ _LOG_PREFIX = "[CONFIG-VIEW]"
 
 class Config(views.View):
     def get(
-        self, request: http.HttpRequest, *args: typing.Any, **kwargs: typing.Any
+            self, request: http.HttpRequest, *args: typing.Any, **kwargs: typing.Any
     ) -> http.HttpResponse:
         logger.info("{} Fetching all currency offer configs.".format(_LOG_PREFIX))
         try:
@@ -47,7 +47,7 @@ class Config(views.View):
         )
 
     def post(
-        self, request: http.HttpRequest, *args: typing.Any, **kwargs: typing.Any
+            self, request: http.HttpRequest, *args: typing.Any, **kwargs: typing.Any
     ) -> http.HttpResponse:
         try:
             payload = simplejson.loads(request.body.decode("utf-8"))
@@ -77,6 +77,7 @@ class Config(views.View):
         try:
             config = config_services.set_currency_offer_config(
                 currency=enums.CryptoCurrency(validated_data["currency"]),
+                offer_provider=enums.OfferProvider[validated_data["provider"]],
                 config_name=validated_data["config_name"],
                 config_value=validated_data["config_value"],
             )
@@ -128,6 +129,7 @@ class Config(views.View):
             "id": config.id,
             "attributes": {
                 "currency": config.currency,
+                "provider": config.provider_name,
                 "name": config.name,
                 "value": config.value,
             },

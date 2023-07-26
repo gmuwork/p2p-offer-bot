@@ -31,7 +31,7 @@ class PaymentMethod(enum.Enum):
     @staticmethod
     def convert_from_payment_slug(slug: str) -> typing.Optional["PaymentMethod"]:
         try:
-            payment_method = PaymentMethod[slug]
+            payment_method = PaymentMethod(slug)
         except KeyError:
             return None
 

@@ -1,435 +1,104 @@
-# import datetime
-# import decimal
-# import logging
-# import typing
-#
-# from django.conf import settings
-# from django.core import mail
-# from django.core.cache import cache
-#
-# from common import utils as common_utils
-# from src import constants
-# from src import enums
-# from src import exceptions
-# from src import messages
-# from src import models
-# from src.services import config as config_services
-# from src.integrations.gateways.cmc import client as cmc_api_client, exceptions as cmc_api_exceptions
-# from src.integrations.gateways.noones import client as noones_api_client
-# from src.integrations.gateways.noones import exceptions as noones_api_exceptions
-#
-# logger = logging.getLogger(__name__)
-
-# _LOG_PREFIX = "[OFFERS]"
-#
-#
-#
-
-#
-#
-
-#
-#
-
-# def get_all_offers(offer_owner_type: enums.OfferOwnerType) -> typing.List[models.Offer]:
-#     return models.Offer.objects.filter(owner_type=offer_owner_type.value)
-#
-#
-# def change_offer_status(offer_id: str, offer_status: str) -> models.Offer:
-#     logger.info(
-#         "{} Changing offer status (offer_id={}, offer_status={}).".format(
-#             _LOG_PREFIX, offer_id, offer_status
-#         )
-#     )
-#     offer_status = enums.OfferStatus.convert_from_status(status=offer_status)
-#
-#     offer = models.Offer.objects.get(offer_id=offer_id)
-#     offer.status = offer_status.value
-#     offer.status_name = offer_status.name
-#     offer.save(update_fields=["status", "updated_at"])
-#
-#     logger.info(
-#         "{} Changed offer status (offer_id={}, offer_status={}).".format(
-#             _LOG_PREFIX, offer_id, offer_status
-#         )
-#     )
-#     return offer
-
-
-import datetime
-import decimal
 import logging
 import typing
 
-from django.conf import settings
-from django.core import mail
-from django.core.cache import cache
-
-from common import utils as common_utils
-from src import constants
 from src import enums
-from src import exceptions
-from src import messages
 from src import models
-from src.services import config as config_services
-from src.integrations.providers import base as base_provider
-from src.integrations.providers import messages as provider_messages
-from src.integrations.gateways.cmc import (
-    client as cmc_api_client,
-    exceptions as cmc_api_exceptions,
-)
-from src.integrations.gateways.noones import client as noones_api_client
-from src.integrations.gateways.noones import exceptions as noones_api_exceptions
+from src.integrations.providers import factory as provider_factory
 
 logger = logging.getLogger(__name__)
 
+_LOG_PREFIX = "[OFFER-SERVICE]"
 
-class OfferService(object):
-    def __init__(self, provider_client: base_provider.BaseProvider) -> None:
-        self._provider_client = provider_client
-        self._log_prefix = "[{}-OFFER-SERVICE]".format(
-            self._provider_client.provider.name
+
+def fetch_and_save_offer(
+        offer_id: str,
+        offer_provider: enums.OfferProvider,
+        offer_owner_type: enums.OfferOwnerType,
+        override_existing_offer_type: bool = False,
+) -> typing.Optional[models.Offer]:
+    logger.info(
+        "{} Fetching offer (id={}) from provider (provider_name={}).".format(
+            _LOG_PREFIX, offer_id, offer_provider.name
         )
+    )
 
-    def improve_internal_active_offers(self) -> None:
+    provider_client = provider_factory.ProviderFactory().create(provider=offer_provider)
+    offer = provider_client.get_offer(offer_id=offer_id)
+    logger.info(
+        "{} Fetched offer (id={}) from provider. Saving to DB.".format(
+            _LOG_PREFIX, offer_id
+        )
+    )
+    offer_db = (
+        models.Offer.objects.filter(offer_id=offer_id, provider=offer_provider.value)
+        .order_by("id")
+        .last()
+    )
+    if offer_db:
         logger.info(
-            "{} Started improving internal active offers.".format(self._log_prefix)
-        )
-        internal_active_offers = models.Offer.objects.filter(
-            owner_type=enums.OfferOwnerType.INTERNAL.value,
-            status=enums.OfferStatus.ACTIVE.value,
-            provider=self._provider_client.provider.value,
+            "{} Offer (id={}) is already present in db.".format(_LOG_PREFIX, offer_id)
         )
 
-        if not internal_active_offers:
+        if override_existing_offer_type:
             logger.info(
-                "{} Not found active internal offers to improve. Exiting.".format(
-                    self._log_prefix
+                "{} Changing offer (id={}) owner type to (offer_owner_type={}).".format(
+                    _LOG_PREFIX, offer_id, offer_owner_type.name
                 )
             )
-            return
+            offer_db.owner_type = offer_owner_type.value
+            offer_db.owner_type_name = offer_owner_type.name
+            offer_db.save(update_fields=["owner_type", "owner_type_name", "updated_at"])
 
-        logger.info(
-            "{} Found {} active internal offers to improve.".format(
-                self._log_prefix, internal_active_offers.count()
-            )
+        return
+
+    saved_offer = models.Offer.objects.create(
+        offer_id=offer.offer_id,
+        owner_type=offer_owner_type.value,
+        owner_type_name=offer_owner_type.name,
+        status=enums.OfferStatus.ACTIVE.value,
+        status_name=enums.OfferStatus.ACTIVE.name,
+        offer_type=offer.type.value,
+        offer_type_name=offer.type.name,
+        currency=offer.currency.name,
+        conversion_currency=offer.conversion_currency.name,
+        payment_method=offer.payment_method.value if offer.payment_method else None,
+        provider=offer_provider.value,
+        provider_name=offer_provider.name,
+    )
+
+    logger.info(
+        "{} Saved offer (id={}, provider_name={}).".format(
+            _LOG_PREFIX, saved_offer.id, offer_provider.name
         )
-        for internal_active_offer in internal_active_offers:
-            try:
-                self.improve_offer(offer_id=internal_active_offer.offer_id)
-            except Exception as e:
-                msg = "Exception occurred while improving offer (offer_id={}). Error: {}".format(
-                    internal_active_offer.offer_id,
-                    common_utils.get_exception_message(exception=e),
-                )
-                logger.exception("{} {}.".format(self._log_prefix, msg))
-                mail.send_mail(
-                    from_email=settings.EMAIL_HOST_USER,
-                    subject="ERROR",
-                    message=msg,
-                    recipient_list=settings.LOGGING_EMAIL_RECIPIENT_LIST,
-                    fail_silently=False,
-                )
-                continue
+    )
 
-        logger.info(
-            "{} Finished improving internal active offers.".format(self._log_prefix)
+    return saved_offer
+
+
+def get_all_offers(
+        offer_owner_type: enums.OfferOwnerType
+) -> typing.List[models.Offer]:
+    return models.Offer.objects.filter(
+        owner_type=offer_owner_type.value
+    )
+
+
+def change_offer_status(offer_id: str, offer_status: str) -> models.Offer:
+    logger.info(
+        "{} Changing offer status (offer_id={}, offer_status={}).".format(
+            _LOG_PREFIX, offer_id, offer_status
         )
+    )
+    offer_status = enums.OfferStatus.convert_from_status(status=offer_status)
 
-    def improve_offer(
-            self,
-            offer_id: str,
-    ):
-        logger.info(
-            "{} Started improving offer (offer_id={}).".format(
-                self._log_prefix, offer_id
-            )
+    offer = models.Offer.objects.get(offer_id=offer_id)
+    offer.status = offer_status.value
+    offer.status_name = offer_status.name
+    offer.save(update_fields=["status", "updated_at"])
+
+    logger.info(
+        "{} Changed offer status (offer_id={}, offer_status={}).".format(
+            _LOG_PREFIX, offer_id, offer_status
         )
-        internal_offer = self._provider_client.get_offer(offer_id=offer_id)
-        competitor_offer = self._get_best_competitor_offer(
-            internal_offer=internal_offer
-        )
-        if not competitor_offer:
-            logger.error(
-                "{} Competitor offer not found. Exiting.".format(self._log_prefix)
-            )
-            return
-
-        offer_price_to_update = competitor_offer.price + decimal.Decimal(
-            config_services.get_currency_offer_config(
-                currency=competitor_offer.currency,
-                config_name="amount_to_increase_offer",
-            )
-        )
-
-        if internal_offer.price == offer_price_to_update:
-            logger.info(
-                "{} Offer (offer_id={}) price {} {} is the same as best competitor offer (offer_id={}). Exiting.".format(
-                    self._log_prefix,
-                    offer_id,
-                    offer_price_to_update,
-                    internal_offer.conversion_currency.name,
-                    competitor_offer.offer_id,
-                )
-            )
-            return
-
-        logger.info(
-            "{} Updating offer (offer_id={}) with best competitor offer (offer_id={}) with {} {}.".format(
-                self._log_prefix,
-                offer_id,
-                competitor_offer.offer_id,
-                offer_price_to_update,
-                internal_offer.conversion_currency.name,
-            )
-        )
-
-        updated_offer = self._provider_client.update_offer_price(
-            offer_id=offer_id, price=offer_price_to_update
-        )
-        if not updated_offer:
-            logger.error(
-                "{} Offer (offer_id={}) is not updated successfully. Exiting.".format(
-                    self._log_prefix, offer_id
-                )
-            )
-            return
-
-        logger.info(
-            "{} Updated offer (offer_id={}) with best competitor offer (offer_id={}) with {} {}.".format(
-                self._log_prefix,
-                offer_id,
-                competitor_offer.offer_id,
-                offer_price_to_update,
-                internal_offer.conversion_currency.name,
-            )
-        )
-
-        self._post_process_offer(
-            internal_offer=internal_offer,
-            competitor_offer=competitor_offer,
-            updated_price=offer_price_to_update,
-        )
-        logger.info(
-            "{} Finished improving offer (offer_id={}).".format(
-                self._log_prefix, offer_id
-            )
-        )
-
-    def _get_best_competitor_offer(
-            self,
-            internal_offer: provider_messages.Offer,
-    ) -> typing.Optional[provider_messages.Offer]:
-        currency_market_price = self._get_currency_market_price(
-            crypto_currency=internal_offer.currency,
-            convert_to_fiat_currency=internal_offer.conversion_currency,
-        )
-
-        competitor_offer_max_price = currency_market_price + currency_market_price * (
-                decimal.Decimal(
-                    config_services.get_currency_offer_config(
-                        # TODO: This has to be extended to be per provider
-                        currency=internal_offer.currency,
-                        config_name="search_price_upper_margin",
-                    )
-                )
-                / decimal.Decimal("100")
-        )
-
-        competitor_offer_min_price = currency_market_price - currency_market_price * (
-                decimal.Decimal(
-                    config_services.get_currency_offer_config(
-                        currency=internal_offer.currency,
-                        config_name="search_price_lower_margin",
-                    )
-                )
-                / decimal.Decimal("100")
-        )
-        competitor_offers = self._provider_client.get_all_offers(
-            offer_type=internal_offer.type,
-            currency=internal_offer.currency,
-            conversion_currency=internal_offer.conversion_currency,
-            payment_method=internal_offer.payment_method
-            if not settings.OFFER_SEARCH_ALL_BANK_PAYMENT_METHODS
-            else None,
-            max_price=competitor_offer_max_price,
-            min_price=competitor_offer_min_price,
-        )
-        if not competitor_offers:
-            logger.info(
-                "{} No competitor offers found (crypto_currency={}, convert_to_fiat_currency={}, offer_type={}, max_price={}, min_price={}).".format(
-                    self._log_prefix,
-                    internal_offer.currency.name,
-                    internal_offer.conversion_currency.name,
-                    internal_offer.type.name,
-                    competitor_offer_max_price,
-                    competitor_offer_min_price,
-                )
-            )
-            return
-
-        relevant_offers_above_market_price = []
-        relevant_offers_below_market_price = []
-        for offer in competitor_offers:
-            if offer.offer_id == internal_offer.offer_id:
-                continue
-
-            if (
-                    decimal.Decimal(datetime.datetime.now().timestamp())
-                    - offer.owner_last_seen_timestamp
-            ) / 60 > decimal.Decimal(
-                config_services.get_currency_offer_config(
-                    currency=internal_offer.currency,
-                    config_name="owner_last_seen_max_time",
-                )
-            ):
-                continue
-
-            # TEMPORARY UNTIL CONFIRMED WITH CLIENT
-            if (
-                    settings.OFFER_SEARCH_ALL_BANK_PAYMENT_METHODS
-                    and offer.payment_method
-                    not in [
-                enums.PaymentMethod.BANK_TRANSFER,
-                enums.PaymentMethod.OTHER_BANK_TRANSFER,
-                enums.PaymentMethod.DOMESTIC_WIRE_TRANSFER,
-            ]
-            ):
-                continue
-
-            if offer.price > currency_market_price:
-                relevant_offers_above_market_price.append(offer)
-            else:
-                relevant_offers_below_market_price.append(offer)
-
-        if relevant_offers_below_market_price:
-            return max(
-                relevant_offers_below_market_price, key=lambda offer: offer.price
-            )
-
-        return min(relevant_offers_above_market_price, key=lambda offer: offer.price)
-
-    def _get_currency_market_price(
-            self,
-            crypto_currency: enums.CryptoCurrency,
-            convert_to_fiat_currency: enums.FiatCurrency,
-    ) -> decimal.Decimal:
-        market_price = cache.get(
-            key=constants.CMC_CURRENCY_MARKET_PRICE_CACHE_KEY.format(
-                crypto_currency=crypto_currency.name,
-                conversion_fiat_currency=convert_to_fiat_currency.name,
-            ),
-            default=None,
-        )
-
-        if not market_price:
-            try:
-                market_price_response = (
-                    cmc_api_client.CoinMarketCapClient().get_market_price(
-                        currency=crypto_currency, convert_to=convert_to_fiat_currency
-                    )
-                )
-            except cmc_api_exceptions.CoinMarketCapException as e:
-                msg = "Unable to get market price (crypto_currency={}, conversion_currency={}). Error: {}.".format(
-                    crypto_currency.name,
-                    convert_to_fiat_currency.name,
-                    common_utils.get_exception_message(exception=e),
-                )
-                logger.exception("{} {}.".format(self._log_prefix, msg))
-                raise exceptions.CMCClientError(msg)
-
-            market_price = market_price_response[crypto_currency.name][0]["quote"][
-                convert_to_fiat_currency.name
-            ]["price"]
-            cache.set(
-                key=constants.CMC_CURRENCY_MARKET_PRICE_CACHE_KEY.format(
-                    crypto_currency=crypto_currency.name,
-                    conversion_fiat_currency=convert_to_fiat_currency.name,
-                ),
-                value=market_price,
-                timeout=constants.CMC_CURRENCY_MARKET_PRICE_CACHE_TTL,
-            )
-
-        return market_price
-
-    def _post_process_offer(
-            self, internal_offer: provider_messages.Offer, competitor_offer: provider_messages.Offer,
-            updated_price: decimal.Decimal
-    ) -> None:
-        logger.info(
-            "{} Started post processing internal offer (offer_id={}).".format(
-                self._log_prefix, internal_offer.offer_id
-            )
-        )
-
-        self._fetch_and_save_offer(
-            offer_id=competitor_offer["offer_id"],
-            offer_owner_type=enums.OfferOwnerType.COMPETITOR,
-        )
-        offer_history = models.OfferHistory.objects.create(
-            offer=models.Offer.objects.get(offer_id=internal_offer.offer_id),
-            competitor_offer=models.Offer.objects.get(
-                offer_id=competitor_offer.offer_id
-            ),
-            original_offer_price=internal_offer.price,
-            updated_offer_price=updated_price,
-            competitor_offer_price=competitor_offer.price,
-        )
-        logger.info(
-            "{} Created offer history (offer_id={}, offer_history_id={}).".format(
-                self._log_prefix, internal_offer.offer_id, offer_history.id
-            )
-        )
-
-    @staticmethod
-    def fetch_and_save_offer(
-            offer_id: str,
-            offer_owner_type: enums.OfferOwnerType,
-            override_existing_offer_type: bool = False,
-    ) -> typing.Optional[models.Offer]:
-        logger.info(
-            "{} Fetching offer (id={}) from provider.".format(_LOG_PREFIX, offer_id)
-        )
-        offer = _fetch_offer_from_client(offer_id=offer_id)
-        logger.info(
-            "{} Fetched offer (id={}) from provider. Saving to DB.".format(
-                _LOG_PREFIX, offer_id
-            )
-        )
-        offer_db = (
-            models.Offer.objects.filter(offer_id=offer["offer_id"]).order_by("id").last()
-        )
-        if offer_db:
-            logger.info(
-                "{} Offer (id={}) is already present in db.".format(_LOG_PREFIX, offer_id)
-            )
-
-            if override_existing_offer_type:
-                logger.info(
-                    "{} Changing offer (id={}) owner type to (offer_owner_type={}).".format(
-                        _LOG_PREFIX, offer["offer_id"], offer_owner_type.name
-                    )
-                )
-                offer_db.owner_type = offer_owner_type.value
-                offer_db.owner_type_name = offer_owner_type.name
-                offer_db.save(update_fields=["owner_type", "owner_type_name", "updated_at"])
-
-            return
-
-        offer_type = enums.OfferType(offer["offer_type"])
-        saved_offer = models.Offer.objects.create(
-            offer_id=offer["offer_id"],
-            owner_type=offer_owner_type.value,
-            owner_type_name=offer_owner_type.name,
-            status=enums.OfferStatus.ACTIVE.value,
-            status_name=enums.OfferStatus.ACTIVE.name,
-            offer_type=offer_type.value,
-            offer_type_name=offer_type.name,
-            currency=enums.CryptoCurrency(offer["crypto_currency_code"]).name,
-            conversion_currency=enums.FiatCurrency(offer["fiat_currency_code"]).name,
-            payment_method=enums.PaymentMethod(offer["payment_method_slug"]).value,
-        )
-
-        logger.info("{} Saved offer (id={}).".format(_LOG_PREFIX, saved_offer.id))
-
-        return saved_offer
+    )
+    return offer

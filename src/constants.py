@@ -11,7 +11,7 @@ CURRENCY_CONFIG_SEARCH_PRICE_UPPER_MARGIN = "search_price_upper_margin"
 CURRENCY_CONFIG_SEARCH_PRICE_LOWER_MARGIN = "search_price_lower_margin"
 CURRENCY_CONFIG_OWNER_LAST_SEEN_MAX_TIME = "owner_last_seen_max_time"
 
-CURRENCY_CONFIG_CACHE_NAME = '{config_name}_{currency}'
+CURRENCY_CONFIG_CACHE_NAME = '{config_name}_{currency}_{provider}'
 
 CURRENCY_CONFIGS = [
     CURRENCY_CONFIG_AMOUNT_TO_INCREASE_OFFER,
