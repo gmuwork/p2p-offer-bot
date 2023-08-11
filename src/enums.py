@@ -1,4 +1,5 @@
 import enum
+import typing
 
 
 class CryptoCurrency(enum.Enum):
@@ -27,6 +28,15 @@ class PaymentMethod(enum.Enum):
     OTHER_BANK_TRANSFER = "other-bank-transfer"
     DOMESTIC_WIRE_TRANSFER = "domestic-wire-transfer"
 
+    @staticmethod
+    def convert_from_payment_slug(slug: str) -> typing.Optional["PaymentMethod"]:
+        try:
+            payment_method = PaymentMethod(slug)
+        except Exception:
+            return None
+
+        return payment_method
+
 
 class UserCountry(enum.Enum):
     ALL = "WORLDWIDE"
@@ -47,3 +57,8 @@ class OfferStatus(enum.Enum):
             "ACTIVE": OfferStatus.ACTIVE,
             "INACTIVE": OfferStatus.INACTIVE,
         }[status]
+
+
+class OfferProvider(enum.Enum):
+    NOONES = 1
+    PAXFUL = 2

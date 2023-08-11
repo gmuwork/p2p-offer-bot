@@ -37,12 +37,15 @@ class Offer(views.View):
                 status=500,
             )
         logger.info("{} Fetched all internal offers.".format(_LOG_PREFIX))
-        json_response = [
-            self._format_offer_response(offer=offer) for offer in all_offers
-        ]
         return http.HttpResponse(
             headers={"Content-Type": "application/json"},
-            content=simplejson.dumps({"data": json_response}),
+            content=simplejson.dumps(
+                {
+                    "data": [
+                        self._format_offer_response(offer=offer) for offer in all_offers
+                    ]
+                }
+            ),
             status=200,
         )
 
@@ -75,6 +78,7 @@ class Offer(views.View):
         try:
             offer = offer_services.fetch_and_save_offer(
                 offer_id=validated_data["offer_id"],
+                offer_provider=enums.OfferProvider[validated_data["provider"]],
                 offer_owner_type=enums.OfferOwnerType.INTERNAL,
                 override_existing_offer_type=True,
             )
@@ -185,6 +189,7 @@ class Offer(views.View):
             "id": offer.id,
             "attributes": {
                 "offer_id": offer.offer_id,
+                "provider": offer.provider_name,
                 "status": offer.status_name,
                 "type": offer.offer_type_name,
                 "currency": offer.currency,

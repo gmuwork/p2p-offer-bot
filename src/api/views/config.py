@@ -37,12 +37,16 @@ class Config(views.View):
             )
 
         logger.info("{} Fetched all currency configs.".format(_LOG_PREFIX))
-        json_response = [
-            self._format_config_response(config=config) for config in all_configs
-        ]
         return http.HttpResponse(
             headers={"Content-Type": "application/json"},
-            content=simplejson.dumps({"data": json_response}),
+            content=simplejson.dumps(
+                {
+                    "data": [
+                        self._format_config_response(config=config)
+                        for config in all_configs
+                    ]
+                }
+            ),
             status=200,
         )
 
@@ -77,6 +81,7 @@ class Config(views.View):
         try:
             config = config_services.set_currency_offer_config(
                 currency=enums.CryptoCurrency(validated_data["currency"]),
+                offer_provider=enums.OfferProvider[validated_data["provider"]],
                 config_name=validated_data["config_name"],
                 config_value=validated_data["config_value"],
             )
@@ -128,6 +133,7 @@ class Config(views.View):
             "id": config.id,
             "attributes": {
                 "currency": config.currency,
+                "provider": config.provider_name,
                 "name": config.name,
                 "value": config.value,
             },

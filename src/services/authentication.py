@@ -3,106 +3,106 @@ import logging
 
 from django.core.cache import cache
 
-from common import utils as common_utils
 from src import constants
 from src import enums
-from src import exceptions
 from src import models
-from src.clients.noones import client as noones_auth_client
-from src.clients.noones import exceptions as noones_auth_client_exceptions
+from src.integrations.providers import base as base_provider
 
 logger = logging.getLogger(__name__)
-_LOG_PREFIX = "[NOONES-AUTHENTICATION]"
 
 
-def create_authentication_token() -> None:
-    logger.info("{} Started creating authentication token.".format(_LOG_PREFIX))
-
-    try:
-        response = (
-            noones_auth_client.NoonesAuthAPIClient().create_authentication_token()
+class AuthenticationService(object):
+    def __init__(
+        self, provider_client: base_provider.BaseAuthenticationProvider
+    ) -> None:
+        self._provider_client = provider_client
+        self._log_prefix = "[{}-AUTHENTICATION-SERVICE]".format(
+            self._provider_client.provider.name
         )
-    except noones_auth_client_exceptions.NoonesAuthAPIException as e:
-        msg = "Unable to get authentication token from client. Error: {}".format(
-            common_utils.get_exception_message(exception=e)
+
+    def create_authentication_token(self) -> None:
+        logger.info(
+            "{} Started creating authentication token.".format(self._log_prefix)
         )
-        logger.exception("{} {}.".format(_LOG_PREFIX, msg))
-        raise exceptions.NoonesAuthClientError(msg)
-
-    logger.info(
-        "{} Created authentication token (raw_response={}).".format(
-            _LOG_PREFIX, response
+        api_authentication_token = self._provider_client.create_authentication_token()
+        logger.info(
+            "{} Created authentication token (token={}).".format(
+                self._log_prefix, api_authentication_token.token
+            )
         )
-    )
 
-    authentication_token = models.AuthenticationToken.objects.create(
-        token=response["access_token"],
-        expire_at=datetime.datetime.now()
-                  + datetime.timedelta(seconds=response["expires_in"]),
-        status=enums.AuthenticationTokenStatus.ACTIVE.value,
-        status_name=enums.AuthenticationTokenStatus.ACTIVE.name,
-    )
-    logger.info(
-        "{} Saved authentication token (token_id={}).".format(
-            _LOG_PREFIX, authentication_token.id
-        )
-    )
-
-    cache.set(
-        key=constants.NOONES_AUTHENTICATION_TOKEN_CACHE_KEY,
-        value=authentication_token.token,
-        timeout=constants.CACHE_MAX_TTL,
-    )
-    logger.info("{} Saved authentication token to cache.".format(_LOG_PREFIX))
-
-
-def deactivate_authentication_token(token_id: int) -> None:
-    logger.info(
-        "{} Deactivating authentication token (token_id={}).".format(
-            _LOG_PREFIX, token_id
-        )
-    )
-
-    models.AuthenticationToken.objects.filter(id=token_id).update(
-        status=enums.AuthenticationTokenStatus.INACTIVE.value,
-        status_name=enums.AuthenticationTokenStatus.INACTIVE.name,
-        updated_at=datetime.datetime.now(),
-    )
-
-    logger.info(
-        "{} Deactivated authentication token (token_id={}).".format(
-            _LOG_PREFIX, token_id
-        )
-    )
-
-
-def maintain_active_authentication_token() -> None:
-    db_token = (
-        models.AuthenticationToken.objects.filter(
+        db_authentication_token = models.AuthenticationToken.objects.create(
+            token=api_authentication_token.token,
+            expire_at=api_authentication_token.expires_at,
             status=enums.AuthenticationTokenStatus.ACTIVE.value,
+            status_name=enums.AuthenticationTokenStatus.ACTIVE.name,
+            provider=self._provider_client.provider.value,
+            provider_name=self._provider_client.provider.name,
         )
-        .order_by("id")
-        .last()
-    )
-
-    if not db_token:
-        create_authentication_token()
-        return
-
-    token_expiration_date = db_token.expire_at - datetime.timedelta(
-        hours=constants.NOONES_AUTHENTICATION_TOKEN_VALIDITY_TIMEDELTA_HRS
-    )
-    if datetime.datetime.now(datetime.timezone.utc) > token_expiration_date:
-        deactivate_authentication_token(token_id=db_token.id)
-        return
-
-    cache.set(
-        key=constants.NOONES_AUTHENTICATION_TOKEN_CACHE_KEY,
-        value=db_token.token,
-        timeout=constants.CACHE_MAX_TTL,
-    )
-    logger.info(
-        "{} Authentication token (token_id={}) is active. Updated cache.".format(
-            _LOG_PREFIX, db_token.id
+        logger.info(
+            "{} Saved authentication token (token_id={}).".format(
+                self._log_prefix, db_authentication_token.id
+            )
         )
-    )
+
+        cache.set(
+            key=constants.AUTHENTICATION_TOKEN_CACHE_KEY.format(
+                provider=self._provider_client.provider.name
+            ),
+            value=db_authentication_token.token,
+            timeout=constants.CACHE_MAX_TTL,
+        )
+        logger.info("{} Saved authentication token to cache.".format(self._log_prefix))
+
+    def deactivate_authentication_token(self, token_id: int) -> None:
+        logger.info(
+            "{} Deactivating authentication token (token_id={}).".format(
+                self._log_prefix, token_id
+            )
+        )
+
+        models.AuthenticationToken.objects.filter(id=token_id).update(
+            status=enums.AuthenticationTokenStatus.INACTIVE.value,
+            status_name=enums.AuthenticationTokenStatus.INACTIVE.name,
+            updated_at=datetime.datetime.now(),
+        )
+
+        logger.info(
+            "{} Deactivated authentication token (token_id={}).".format(
+                self._log_prefix, token_id
+            )
+        )
+
+    def maintain_active_authentication_token(self) -> None:
+        db_token = (
+            models.AuthenticationToken.objects.filter(
+                status=enums.AuthenticationTokenStatus.ACTIVE.value,
+                provider=self._provider_client.provider.value,
+            )
+            .order_by("id")
+            .last()
+        )
+
+        if not db_token:
+            self.create_authentication_token()
+            return
+
+        token_expiration_date = db_token.expire_at - datetime.timedelta(
+            hours=constants.AUTHENTICATION_TOKEN_VALIDITY_TIMEDELTA_HRS
+        )
+        if datetime.datetime.now(datetime.timezone.utc) > token_expiration_date:
+            self.deactivate_authentication_token(token_id=db_token.id)
+            return
+
+        cache.set(
+            key=constants.AUTHENTICATION_TOKEN_CACHE_KEY.format(
+                provider=self._provider_client.provider.name
+            ),
+            value=db_token.token,
+            timeout=constants.CACHE_MAX_TTL,
+        )
+        logger.info(
+            "{} Authentication token (token_id={}) is active. Updated cache.".format(
+                self._log_prefix, db_token.id
+            )
+        )

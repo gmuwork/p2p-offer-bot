@@ -167,7 +167,12 @@ NOONES_AUTH_API_URL = "https://auth.noones.com"
 NOONES_AUTH_CLIENT_ID = "<TAG>"
 NOONES_AUTH_CLIENT_SECRET = "<TAG>"
 
+PAXFUL_AUTH_API_URL = "https://accounts.paxful.com"
+PAXFUL_AUTH_CLIENT_ID = "<TAG>"
+PAXFUL_AUTH_CLIENT_SECRET = "<TAG>"
+
 NOONES_API_URL = "https://api.noones.com"
+PAXFUL_API_URL = "https://api.paxful.com"
 
 OFFER_SEARCH_ALL_BANK_PAYMENT_METHODS = True
 
