@@ -27,6 +27,7 @@ class PaymentMethod(enum.Enum):
     VISA_DEBIT_CREDIT_CARD = "visa-debitcredit-card"
     OTHER_BANK_TRANSFER = "other-bank-transfer"
     DOMESTIC_WIRE_TRANSFER = "domestic-wire-transfer"
+    INTERNATIONAL_WIRE_TRANSFER = 'international-wire-transfer-swift'
 
     @staticmethod
     def convert_from_payment_slug(slug: str) -> typing.Optional["PaymentMethod"]:
