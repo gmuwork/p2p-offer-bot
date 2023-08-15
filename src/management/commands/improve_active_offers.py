@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 class Command(BaseCommand):
     help = """
             Improves all active offers.
-            ex. python manage.py improve_active_offers --provider=PAXFUL
+            ex. python manage.py improve_active_offers --provider=NOONES
             """
 
     log_prefix = "[IMPROVE-ACTIVE-OFFERS]"

@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 class Command(BaseCommand):
     help = """
             Maintains active authentication token pool.
-            ex. python manage.py maintain_active_auth_token  --provider=NOONES
+            ex. python manage.py maintain_active_auth_token  --provider=PAXFUL
             """
 
     log_prefix = "[MAINTAIN-ACTIVE-AUTH-TOKEN]"

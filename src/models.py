@@ -18,7 +18,7 @@ class AuthenticationToken(django_db_models.Model):
 
 
 class Offer(django_db_models.Model):
-    offer_id = django_db_models.CharField(max_length=255, null=False, unique=True)
+    offer_id = django_db_models.CharField(max_length=255, null=False, unique=False)
     owner_type = django_db_models.PositiveSmallIntegerField(null=False)
     owner_type_name = django_db_models.CharField(max_length=255, null=False)
     status = django_db_models.PositiveSmallIntegerField(null=False)
