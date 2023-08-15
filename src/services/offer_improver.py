@@ -333,7 +333,10 @@ class OfferImproverService(object):
             )
 
         offer_history = models.OfferHistory.objects.create(
-            offer=models.Offer.objects.get(offer_id=internal_offer.offer_id),
+            offer=models.Offer.objects.get(
+                offer_id=internal_offer.offer_id,
+                provider=self._provider_client.provider.value,
+            ),
             competitor_offer=models.Offer.objects.get(
                 offer_id=competitor_offer.offer_id
             ),
